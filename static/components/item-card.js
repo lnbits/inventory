@@ -21,7 +21,8 @@ window.app.component('item-card', {
         : 'green'
     },
     computePrice() {
-      if (this.currency === 'sats') {
+      const isSat = ['sat', 'sats'].includes((this.currency || '').toLowerCase())
+      if (isSat) {
         return this.item.price ? `${this.item.price} sats` : 'Free'
       }
       return this.item.price

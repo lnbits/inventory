@@ -71,7 +71,9 @@ window.app = Vue.createApp({
             field: 'price',
             sortable: true,
             format: (_, row) =>
-              LNbits.utils.formatCurrency(row.price, this.openInventoryCurrency)
+              this.checkIsSat(this.openInventoryCurrency)
+                ? `${row.price} sats`
+                : LNbits.utils.formatCurrency(row.price, this.openInventoryCurrency)
           },
           {
             name: 'discount',
@@ -271,11 +273,6 @@ window.app = Vue.createApp({
     }
   },
   computed: {
-    itemCurrencyMask() {
-      const decimals = this.getCurrencyDecimals(this.itemDialog.currency)
-      if (!decimals) return null
-      return `#.${'#'.repeat(decimals)}`
-    },
     isSatCurrency() {
       return this.checkIsSat(this.itemDialog.currency)
     },
