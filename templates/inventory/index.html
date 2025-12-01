@@ -89,6 +89,7 @@
               v-for="item in items"
               :key="item.id"
             >
+            
               <item-card
                 :item="item"
                 :currency="inventory ? inventory.currency : openInventoryCurrency"
@@ -139,6 +140,23 @@
                 ></q-th>
               </q-tr>
             </template>
+            <template v-slot:body-cell-tags="props">
+              <q-td :props="props">
+                <template v-if="props.row.tags && props.row.tags.length">
+                  <q-chip
+                    v-for="tag in props.row.tags"
+                    :key="tag"
+                    dense
+                    color="primary"
+                    text-color="white"
+                    class="q-mr-xs q-mb-xs"
+                  >
+                    {{ tag }}
+                  </q-chip>
+                </template>
+                <span v-else>-</span>
+              </q-td>
+            </template>
             <template v-slot:body="props">
               <q-tr :props="props">
                 <q-td auto-width class="q-gutter-x-sm">
@@ -164,7 +182,28 @@
                   ></q-btn>
                 </q-td>
                 <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                  <span v-text="col.value"></span>
+                  <template
+                    v-if="
+                      col.name === 'tags' &&
+                      (Array.isArray(props.row.tags)
+                        ? props.row.tags.length
+                        : !!(props.row.tags || '').length)
+                    "
+                  >
+                    <q-chip
+                      v-for="tag in (Array.isArray(props.row.tags) ? props.row.tags : (props.row.tags || '').split(','))"
+                      :key="tag"
+                      dense
+                      color="primary"
+                      text-color="white"
+                      class="q-mr-xs q-mb-xs"
+                    >
+                      <span v-text="tag"></span>
+                    </q-chip>
+                  </template>
+                  <template v-else>
+                    <span v-text="col.value"></span>
+                  </template>
                 </q-td>
               </q-tr>
             </template>
@@ -261,16 +300,33 @@
                       <q-th
                         v-for="col in props.cols"
                         :key="col.name"
-                        :props="props"
-                        v-text="col.label"
-                      ></q-th>
-                    </q-tr>
+                    :props="props"
+                    v-text="col.label"
+                  ></q-th>
+                </q-tr>
+              </template>
+              <template v-slot:body-cell-tags="props">
+                <q-td :props="props">
+                  <template v-if="props.row.tags && props.row.tags.length">
+                    <q-chip
+                      v-for="tag in props.row.tags"
+                      :key="tag"
+                      dense
+                      color="primary"
+                      text-color="white"
+                      class="q-mr-xs q-mb-xs"
+                    >
+                      {{ tag }}
+                    </q-chip>
                   </template>
-                  <template v-slot:body="props">
-                    <q-tr :props="props">
-                      <q-td auto-width>
-                        <q-btn
-                          unlevated
+                  <span v-else>-</span>
+                </q-td>
+              </template>
+              <template v-slot:body="props">
+                <q-tr :props="props">
+                  <q-td auto-width>
+                    <q-btn
+                      unlevated
                           size="sm"
                           color="pink"
                           dense
@@ -278,22 +334,39 @@
                           icon="delete"
                         ></q-btn>
                       </q-td>
-                      <q-td auto-width>
-                        <q-btn
-                          unlevated
-                          size="sm"
-                          color="accent"
+                    <q-td auto-width>
+                      <q-btn
+                        unlevated
+                        size="sm"
+                        color="accent"
                           dense
                           @click="showItemDialog(props.row.id)"
                           icon="edit"
                         ></q-btn>
                       </q-td>
-                      <q-td
-                        v-for="col in props.cols"
-                        :key="col.name"
-                        :props="props"
-                        v-text="col.value"
-                      >
+                      <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                        <template
+                          v-if="
+                            col.name === 'tags' &&
+                            (Array.isArray(props.row.tags)
+                              ? props.row.tags.length
+                              : !!(props.row.tags || '').length)
+                          "
+                        >
+                          <q-chip
+                            v-for="tag in (Array.isArray(props.row.tags) ? props.row.tags : (props.row.tags || '').split(','))"
+                            :key="tag"
+                            dense
+                            color="primary"
+                            text-color="white"
+                            class="q-mr-xs q-mb-xs"
+                          >
+                            <span v-text="tag"></span>
+                          </q-chip>
+                        </template>
+                        <template v-else>
+                          <span v-text="col.value"></span>
+                        </template>
                       </q-td>
                     </q-tr>
                   </template>

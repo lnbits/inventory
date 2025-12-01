@@ -64,6 +64,18 @@ window.app.component('item-card', {
           <div class="q-pb-md description">
             <span class="text-subtitle1 ellipsis-3-lines" v-text="item.description"></span>
           </div>
+          <div v-if="item.tags && item.tags.length" class="q-pb-sm">
+            <q-chip
+              v-for="tag in item.tags"
+              :key="tag"
+              dense
+              color="primary"
+              text-color="white"
+              class="q-mr-xs q-mb-xs"
+            >
+              {{ tag }}
+            </q-chip>
+          </div>
           <div class="text-subtitle1 text-justify">
             <div>
               <span>Price: </span>
