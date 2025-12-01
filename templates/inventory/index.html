@@ -2,26 +2,7 @@
 %} {% block page %}
 <div>
   {% include "inventory/_dialogs.html" %}
-  <div v-if="inventory == null" class="flex flex-center q-py-xl">
-    <q-card class="q-my-xl q-pa-lg">
-      <q-card-section class="text-center">
-        <div class="text-h6">No inventories found</div>
-        <div class="text-subtitle2">
-          You haven't created any inventories yet. Click the button below to get
-          started.
-        </div>
-      </q-card-section>
-      <q-card-actions align="center">
-        <q-btn
-          color="primary"
-          label="Create Inventory"
-          @click="showInventoryDialog"
-        >
-        </q-btn>
-      </q-card-actions>
-    </q-card>
-  </div>
-  <div v-else class="justify-center">
+  <div class="justify-center">
     <q-separator class="q-my-md"></q-separator>
     <!-- <h5 class="q-mb-lg"><span v-text="inventory.name"></span></h5> -->
     <q-toolbar class="q-pb-lg q-px-none">
@@ -37,7 +18,8 @@
         flat
         color="grey-6"
         icon="settings"
-        @click="showInventoryDialog(inventory.id)"
+        :class="{'wiggle-settings': !inventory}"
+        @click="showInventoryDialog(inventory && inventory.id)"
       ></q-btn>
     </q-toolbar>
     <section v-if="tab === 'items'">
@@ -45,7 +27,8 @@
         <q-btn
           color="primary"
           label="Add Item"
-          @click="itemDialog.show = true"
+          :disable="!inventory"
+          @click="showItemDialog()"
         ></q-btn>
         <q-btn flat color="grey-6" class="q-ml-md">
           <q-icon
@@ -78,8 +61,11 @@
       >
         <q-card class="q-my-xl q-pa-lg">
           <q-card-section class="text-center">
-            <div class="text-h6">No items yet...</div>
-            <div class="text-subtitle2">
+            <div
+              class="text-h6"
+              v-text="inventory ? 'No items yet...' : 'Before you can add items please complete the inventory settings.'"
+            ></div>
+            <div class="text-subtitle2" v-if="inventory">
               You haven't created any items yet. Click the button below to get
               started.
             </div>
@@ -88,7 +74,8 @@
             <q-btn
               color="primary"
               label="Add Item"
-              @click="itemDialog.show = true"
+              :disable="!inventory"
+              @click="showItemDialog()"
             >
             </q-btn>
           </q-card-actions>
@@ -104,7 +91,7 @@
             >
               <item-card
                 :item="item"
-                :currency="inventory.currency"
+                :currency="inventory ? inventory.currency : openInventoryCurrency"
                 @edit="showItemDialog(item.id)"
                 @delete="deleteItem(item.id)"
               ></item-card>
@@ -430,6 +417,32 @@
         </q-table>
       </q-card>
     </section>
+    <section v-if="tab === 'settings'">
+      <q-card class="q-pa-lg">
+        <q-card-section class="row items-center">
+          <div class="col">
+            <div class="text-h6">
+              <span v-if="inventory" v-text="inventory.name"></span>
+              <span v-else>Inventory Settings</span>
+            </div>
+            <div class="text-subtitle2">
+              <span v-if="inventory">
+                Currency:
+                <span class="text-weight-bold" v-text="inventory.currency"></span>
+              </span>
+              <span v-else>Create your inventory to enable items.</span>
+            </div>
+          </div>
+          <div class="col-auto">
+            <q-btn
+              color="primary"
+              :label="inventory ? 'Edit Inventory' : 'Create Inventory'"
+              @click="showInventoryDialog(inventory?.id)"
+            ></q-btn>
+          </div>
+        </q-card-section>
+      </q-card>
+    </section>
   </div>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
@@ -446,6 +459,30 @@
   }
   .description {
     flex: 1;
+  }
+  .wiggle-settings {
+    animation: wiggle 1.2s ease-in-out infinite;
+  }
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+    15% {
+      transform: rotate(-10deg);
+    }
+    30% {
+      transform: rotate(12deg);
+    }
+    45% {
+      transform: rotate(-8deg);
+    }
+    60% {
+      transform: rotate(6deg);
+    }
+    75% {
+      transform: rotate(-4deg);
+    }
   }
 </style>
 <script src="{{ static_url_for('inventory/static', path='js/utils.js') }}"></script>

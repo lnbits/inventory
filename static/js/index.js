@@ -9,7 +9,8 @@ window.app = Vue.createApp({
         {label: 'Items', value: 'items'},
         // {label: 'Stock Managers', value: 'managers'},
         {label: 'Services', value: 'services'},
-        {label: 'Stock Logs', value: 'orders'}
+        {label: 'Stock Logs', value: 'orders'},
+        {label: 'Settings', value: 'settings'}
       ],
       currencyOptions: [],
       inventory: null,
@@ -309,7 +310,11 @@ window.app = Vue.createApp({
     showInventoryDialog() {
       this.inventoryDialog.show = true
       if (this.inventory) {
-        this.inventoryDialog.data = {...this.inventory}
+        const tags =
+          typeof this.inventory.tags === 'string'
+            ? fromCsv(this.inventory.tags)
+            : this.inventory.tags || []
+        this.inventoryDialog.data = {...this.inventory, tags}
         return
       }
       this.inventoryDialog.data = {}
@@ -372,6 +377,8 @@ window.app = Vue.createApp({
         if (!data || (Array.isArray(data) && data.length === 0)) {
           this.inventory = null
           this.openInventory = null
+          this.setInventoryCurrencies(null)
+          this.items = []
           return
         }
         const inventoryData = Array.isArray(data) ? data[0] : data
@@ -407,7 +414,12 @@ window.app = Vue.createApp({
           null,
           payload
         )
+        createdInventory.tags = fromCsv(createdInventory.tags)
         this.inventory = {...createdInventory}
+        this.openInventory = this.inventory.id
+        this.setInventoryCurrencies(this.inventory.currency)
+        this.tab = 'items'
+        await this.getItemsPaginated()
       } catch (error) {
         console.error('Error creating inventory:', error)
         LNbits.utils.notifyError(error)
@@ -473,6 +485,11 @@ window.app = Vue.createApp({
       this.getItemsPaginated()
     },
     async getItemsPaginated(props) {
+      if (!this.openInventory) {
+        this.items = []
+        this.itemsTable.pagination.rowsNumber = 0
+        return
+      }
       console.log('Getting paginated items with props:', props)
       this.loadingItems = true
       try {
@@ -509,6 +526,7 @@ window.app = Vue.createApp({
       if (val.length === 0) return
     },
     showItemDialog(id) {
+      if (!this.inventory) return
       this.itemDialog.show = true
       this.setInventoryCurrencies(this.inventory?.currency)
       if (id) {
