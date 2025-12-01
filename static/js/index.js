@@ -269,6 +269,19 @@ window.app = Vue.createApp({
       }
     }
   },
+  computed: {
+    itemCurrencyMask() {
+      const decimals = this.getCurrencyDecimals(this.itemDialog.currency)
+      if (!decimals) return null
+      return `#.${'#'.repeat(decimals)}`
+    },
+    isSatCurrency() {
+      return this.checkIsSat(this.itemDialog.currency)
+    },
+    allowCurrencyDecimals() {
+      return (this.getCurrencyDecimals(this.itemDialog.currency) || 0) > 0
+    }
+  },
   watch: {
     'itemsTable.search': {
       handler() {
@@ -301,6 +314,7 @@ window.app = Vue.createApp({
       }
       this.inventoryDialog.data = {}
       this.inventoryDialog.data.is_tax_inclusive = true
+      this.inventoryDialog.data.currency = this.defaultCurrency()
     },
     closeInventoryDialog() {
       this.inventoryDialog.show = false
@@ -319,29 +333,58 @@ window.app = Vue.createApp({
       const data = this.inventoryDialog.data
       return !data.name || !data.currency
     },
+    normalizeCurrency(currency) {
+      if (!currency) return null
+      return this.checkIsSat(currency) ? 'sat' : currency.toUpperCase()
+    },
+    defaultCurrency() {
+      const userCurrency =
+        this.g?.wallet?.currency || this.g?.user?.wallets?.[0]?.currency
+      return this.normalizeCurrency(userCurrency) || 'sat'
+    },
+    setInventoryCurrencies(currency) {
+      const normalized = this.normalizeCurrency(currency) || this.defaultCurrency()
+      this.openInventoryCurrency = normalized
+      this.itemDialog.currency = normalized
+    },
+    checkIsSat(currency) {
+      return ['sat', 'sats'].includes((currency || '').toLowerCase())
+    },
+    getCurrencyDecimals(currency) {
+      const normalized = this.normalizeCurrency(currency) || this.defaultCurrency()
+      if (this.checkIsSat(normalized)) return 0
+      try {
+        const resolved = new Intl.NumberFormat(window.i18n.global.locale, {
+          style: 'currency',
+          currency: normalized
+        }).resolvedOptions()
+        return resolved.maximumFractionDigits || 0
+      } catch (error) {
+        return 2
+      }
+    },
     async getInventories() {
       try {
         const {data} = await LNbits.api.request(
           'GET',
           '/inventory/api/v1/inventories'
         )
-        if (data.length === 0) {
+        if (!data || (Array.isArray(data) && data.length === 0)) {
           this.inventory = null
           this.openInventory = null
           return
         }
-        data.tags = data.tags.split(',') || []
-        this.inventory = {...data} // Change to single inventory
+        const inventoryData = Array.isArray(data) ? data[0] : data
+        inventoryData.tags = fromCsv(inventoryData.tags)
+        this.inventory = {...inventoryData} // Change to single inventory
         this.openInventory = this.inventory.id
-        this.openInventoryCurrency = this.inventory.currency
-        this.itemDialog.currency = this.inventory.currency
+        this.setInventoryCurrencies(this.inventory.currency)
         await this.getItemsPaginated()
         await this.getCategories()
         await this.getManagers()
         console.log('Fetched inventory:', this.inventory)
       } catch (error) {
         console.error('Error fetching inventory:', error)
-        LNbits.utils.notifyError(error)
       }
     },
     submitInventoryData() {
@@ -467,6 +510,7 @@ window.app = Vue.createApp({
     },
     showItemDialog(id) {
       this.itemDialog.show = true
+      this.setInventoryCurrencies(this.inventory?.currency)
       if (id) {
         const item = this.items.find(it => it.id === id)
         console.log('Editing item:', item)
@@ -819,20 +863,20 @@ window.app = Vue.createApp({
         console.error('Error fetching stock logs:', error)
         LNbits.utils.notifyError(error)
       }
+    },
+    async fetchCurrencies() {
+      try {
+        const response = await LNbits.api.request('GET', '/api/v1/currencies')
+        this.currencyOptions = ['sat', ...response.data]
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      }
     }
   },
   // To run on startup
   async created() {
     this.itemGrid = this.$q.localStorage.getItem('lnbits_inventoryItemGrid')
+    await this.fetchCurrencies()
     await this.getInventories()
-    await LNbits.api
-      .request('GET', '/api/v1/currencies')
-      .then(({data}) => {
-        this.currencyOptions = ['sats', ...data]
-      })
-      .catch(error => {
-        console.error('Error fetching currencies:', error)
-        LNbits.utils.notifyError(error)
-      })
   }
 })
