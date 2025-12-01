@@ -570,7 +570,7 @@ window.app = Vue.createApp({
       try {
         const {data} = await LNbits.api.request(
           'POST',
-          '/api/v1/assets',
+          '/api/v1/assets?public_asset=true',
           null,
           form
         )
