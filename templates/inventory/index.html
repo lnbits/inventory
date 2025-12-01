@@ -427,6 +427,11 @@
             </div>
             <div class="text-subtitle2">
               <span v-if="inventory">
+                ID:
+                <span class="text-weight-bold" v-text="inventory.id"></span>
+              </span>
+              <br v-if="inventory" />
+              <span v-if="inventory">
                 Currency:
                 <span class="text-weight-bold" v-text="inventory.currency"></span>
               </span>
