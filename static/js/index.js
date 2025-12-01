@@ -369,7 +369,7 @@ window.app = Vue.createApp({
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          '/inventory/api/v1/inventories'
+          '/inventory/api/v1'
         )
         if (!data || (Array.isArray(data) && data.length === 0)) {
           this.inventory = null
@@ -407,7 +407,7 @@ window.app = Vue.createApp({
         const payload = {...data}
         const {data: createdInventory} = await LNbits.api.request(
           'POST',
-          '/inventory/api/v1/inventories',
+          '/inventory/api/v1',
           null,
           payload
         )
@@ -428,7 +428,7 @@ window.app = Vue.createApp({
       try {
         const {data: updatedInventory} = await LNbits.api.request(
           'PUT',
-          `/inventory/api/v1/inventories/${data.id}`,
+          `/inventory/api/v1/${data.id}`,
           null,
           data
         )
@@ -453,7 +453,7 @@ window.app = Vue.createApp({
           try {
             await LNbits.api.request(
               'DELETE',
-              `/inventory/api/v1/inventories/${id}`
+              `/inventory/api/v1/${id}`
             )
             this.inventory = null
             this.openInventory = null

@@ -72,14 +72,14 @@ inventory_ext_api = APIRouter()
 items_filters = parse_filters(ItemFilters)
 
 
-@inventory_ext_api.get("/api/v1/inventories", status_code=HTTPStatus.OK)
+@inventory_ext_api.get("/api/v1", status_code=HTTPStatus.OK)
 async def api_get_inventories(
     user: User = Depends(check_user_exists),
 ) -> Inventory | None:
     return await get_inventories(user.id)
 
 
-@inventory_ext_api.post("/api/v1/inventories", status_code=HTTPStatus.CREATED)
+@inventory_ext_api.post("/api/v1", status_code=HTTPStatus.CREATED)
 async def api_create_inventory(
     inventory: CreateInventory,
     user: User = Depends(check_user_exists),
@@ -87,7 +87,7 @@ async def api_create_inventory(
     return await create_inventory(user.id, inventory)
 
 
-@inventory_ext_api.put("/api/v1/inventories/{inventory_id}", status_code=HTTPStatus.OK)
+@inventory_ext_api.put("/api/v1/{inventory_id}", status_code=HTTPStatus.OK)
 async def api_update_inventory(
     inventory_id: str,
     data: CreateInventory,
@@ -105,7 +105,7 @@ async def api_update_inventory(
 
 
 @inventory_ext_api.delete(
-    "/api/v1/inventories/{inventory_id}", status_code=HTTPStatus.NO_CONTENT
+    "/api/v1/{inventory_id}", status_code=HTTPStatus.NO_CONTENT
 )
 async def api_delete_inventory(
     inventory_id: str,
