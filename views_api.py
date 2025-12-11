@@ -623,21 +623,23 @@ async def api_webhook_stock_update(
                 )
 
     for item_data in data.items:
-        item = next((i for i in existing_items if i.id == item_data.item_id), None)
-        if not item:
+        matched_item: Item | None = next(
+            (i for i in existing_items if i.id == item_data.item_id), None
+        )
+        if not matched_item:
             continue  # skip non-existing items
 
-        quantity_before = item.quantity_in_stock or 0
+        quantity_before = matched_item.quantity_in_stock or 0
         quantity_after = quantity_before - item_data.quantity_change
         quantity_change = item_data.quantity_change
 
         # Update item stock
-        item.quantity_in_stock = quantity_after
-        await update_item(item)
+        matched_item.quantity_in_stock = quantity_after
+        await update_item(matched_item)
 
         inventory_log = CreateInventoryUpdateLog(
             inventory_id=data.inventory_id,
-            item_id=item.id,
+            item_id=matched_item.id,
             quantity_change=-quantity_change,
             quantity_before=quantity_before,
             quantity_after=quantity_after,
