@@ -7,7 +7,7 @@ window.app = Vue.createApp({
       tab: 'items',
       tabOptions: [
         {label: 'Items', value: 'items'},
-        // {label: 'Stock Managers', value: 'managers'},
+        {label: 'Stock Managers', value: 'managers'},
         {label: 'Services', value: 'services'},
         {label: 'Stock Logs', value: 'orders'},
         {label: 'Settings', value: 'settings'}
@@ -73,7 +73,10 @@ window.app = Vue.createApp({
             format: (_, row) =>
               this.checkIsSat(this.openInventoryCurrency)
                 ? `${row.price} sats`
-                : LNbits.utils.formatCurrency(row.price, this.openInventoryCurrency)
+                : LNbits.utils.formatCurrency(
+                    row.price,
+                    this.openInventoryCurrency
+                  )
           },
           {
             name: 'discount',
@@ -124,7 +127,7 @@ window.app = Vue.createApp({
             align: 'left',
             label: 'Created At',
             field: 'created_at',
-            format: val => LNbits.utils.formatDateString(val),
+            format: val => LNbits.utils.formatDate(val),
             sortable: true
           },
           {
@@ -345,7 +348,8 @@ window.app = Vue.createApp({
       return this.normalizeCurrency(userCurrency) || 'sat'
     },
     setInventoryCurrencies(currency) {
-      const normalized = this.normalizeCurrency(currency) || this.defaultCurrency()
+      const normalized =
+        this.normalizeCurrency(currency) || this.defaultCurrency()
       this.openInventoryCurrency = normalized
       this.itemDialog.currency = normalized
     },
@@ -353,7 +357,8 @@ window.app = Vue.createApp({
       return ['sat', 'sats'].includes((currency || '').toLowerCase())
     },
     getCurrencyDecimals(currency) {
-      const normalized = this.normalizeCurrency(currency) || this.defaultCurrency()
+      const normalized =
+        this.normalizeCurrency(currency) || this.defaultCurrency()
       if (this.checkIsSat(normalized)) return 0
       try {
         const resolved = new Intl.NumberFormat(window.i18n.global.locale, {
@@ -367,10 +372,7 @@ window.app = Vue.createApp({
     },
     async getInventories() {
       try {
-        const {data} = await LNbits.api.request(
-          'GET',
-          '/inventory/api/v1'
-        )
+        const {data} = await LNbits.api.request('GET', '/inventory/api/v1')
         if (!data || (Array.isArray(data) && data.length === 0)) {
           this.inventory = null
           this.openInventory = null
@@ -451,10 +453,7 @@ window.app = Vue.createApp({
         })
         .onOk(async () => {
           try {
-            await LNbits.api.request(
-              'DELETE',
-              `/inventory/api/v1/${id}`
-            )
+            await LNbits.api.request('DELETE', `/inventory/api/v1/${id}`)
             this.inventory = null
             this.openInventory = null
             this.items = []
