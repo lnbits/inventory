@@ -41,14 +41,16 @@ from .crud import (
     get_items_by_ids,
     get_manager,
     get_manager_items,
+    manager_can_access_item,
     get_managers,
     get_public_inventory,
     is_category_unique,
     update_external_service,
     update_inventory,
     update_item,
+    update_manager,
 )
-from .helpers import check_item_tags, extract_token_payload
+from .helpers import check_item_tags, extract_token_payload, split_tags
 from .models import (
     Category,
     CreateCategory,
@@ -63,6 +65,7 @@ from .models import (
     Item,
     ItemFilters,
     Manager,
+    ManagerQuantityUpdate,
     PublicItem,
     UpdateSource,
     WebhookPayload,
@@ -70,6 +73,23 @@ from .models import (
 
 inventory_ext_api = APIRouter()
 items_filters = parse_filters(ItemFilters)
+
+
+def _manager_allowed_tags(manager: Manager) -> list[str] | None:
+    if manager.tags is None:
+        return None
+    return split_tags(manager.tags)
+
+
+def _manager_allows_tags(manager: Manager, item_tags: list[str]) -> bool:
+    allowed_tags = _manager_allowed_tags(manager)
+    if allowed_tags is None:
+        return True
+    if not allowed_tags:
+        return False
+    if not item_tags:
+        return False
+    return all(tag in allowed_tags for tag in item_tags)
 
 
 @inventory_ext_api.get("/api/v1", status_code=HTTPStatus.OK)
@@ -196,6 +216,8 @@ async def api_update_item(
         )
     for field, value in item.dict().items():
         setattr(_item, field, value)
+    # Owner updates implicitly approve items (e.g., items submitted by managers)
+    _item.is_approved = True
     return await update_item(_item)
 
 
@@ -291,6 +313,31 @@ async def api_create_manager(
     return await create_manager(manager)
 
 
+@inventory_ext_api.put(
+    "/api/v1/managers/{manager_id}", status_code=HTTPStatus.OK
+)
+async def api_update_manager(
+    manager_id: str,
+    data: CreateManager,
+    user: User = Depends(check_user_exists),
+) -> Manager | None:
+    manager = await get_manager(manager_id)
+    if not manager:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Manager not found.",
+        )
+    inventory = await get_inventory(user.id, manager.inventory_id)
+    if not inventory or inventory.user_id != user.id:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Cannot update manager.",
+        )
+    for field, value in data.dict().items():
+        setattr(manager, field, value)
+    return await update_manager(manager)
+
+
 @inventory_ext_api.get("/api/v1/managers/{manager_id}", status_code=HTTPStatus.OK)
 async def api_get_manager(
     manager_id: str,
@@ -354,7 +401,7 @@ async def api_manager_get_items(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Manager does not belong to the specified inventory.",
         )
-    return await get_manager_items(inventory.id, manager_id)
+    return await get_manager_items(inventory.id, manager)
 
 
 @inventory_ext_api.post(
@@ -386,6 +433,12 @@ async def api_manager_create_item(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Item does not belong to the specified inventory.",
         )
+    item_tags = split_tags(item.tags)
+    if not _manager_allows_tags(manager, item_tags):
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Manager cannot add items with the selected tags.",
+        )
     item.manager_id = manager.id
     item.is_approved = False
     return await create_item(item)
@@ -404,11 +457,6 @@ async def api_manager_update_item(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Item not found.",
-        )
-    if item.manager_id != manager_id:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Item is not managed by the specified manager.",
         )
     manager = await get_manager(manager_id)
     if not manager:
@@ -432,8 +480,61 @@ async def api_manager_update_item(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Item does not belong to the specified inventory.",
         )
-    data.is_active = False
-    return await update_item(data)
+    if item.manager_id != manager_id:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Item is not managed by the specified manager.",
+        )
+    item_tags = split_tags(data.tags)
+    if not _manager_allows_tags(manager, item_tags):
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Manager cannot update items with the selected tags.",
+        )
+    for field, value in data.dict().items():
+        setattr(item, field, value)
+    item.manager_id = manager.id
+    item.is_active = False
+    return await update_item(item)
+
+
+@inventory_ext_api.put(
+    "/api/v1/manager/{manager_id}/item/{item_id}/quantity",
+    status_code=HTTPStatus.OK,
+)
+async def api_manager_update_item_quantity(
+    item_id: str, manager_id: str, data: ManagerQuantityUpdate
+) -> Item:
+    manager = await get_manager(manager_id)
+    if not manager:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Manager not found.",
+        )
+    inventory = await get_public_inventory(manager.inventory_id)
+    if not inventory:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Cannot update item.",
+        )
+    if data.inventory_id != inventory.id:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Item does not belong to the specified inventory.",
+        )
+    item = await get_item(item_id)
+    if not item or item.inventory_id != inventory.id:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Item not found.",
+        )
+    if not manager_can_access_item(manager, item):
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Manager is not allowed to update this item.",
+        )
+    item.quantity_in_stock = data.quantity_in_stock
+    return await update_item(item)
 
 
 @inventory_ext_api.delete(

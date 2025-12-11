@@ -232,36 +232,60 @@
           >
             <q-card>
               <q-card-section>
-                <div class="q-pa-md q-gutter-md">
-                  <q-btn
-                    color="primary"
-                    label="Dashboard"
-                    :href="`/inventory/manager?manager_id=${manager.id}`"
-                    target="_blank"
-                  ></q-btn>
-                  <div class="float-right q-gutter-x-sm">
+                <div class="q-pa-md">
+                  <div class="row items-center q-gutter-md">
                     <q-btn
-                      flat
-                      color="grey-6"
-                      size="sm"
-                      padding="md"
-                      icon="edit"
-                      @click="showManagerDialog(manager.id)"
+                      color="primary"
+                      label="Dashboard"
+                      :href="`/inventory/manager?manager_id=${manager.id}`"
+                      target="_blank"
+                    ></q-btn>
+                    <q-select
+                      dense
+                      filled
+                      multiple
+                      use-chips
+                      :options="inventory?.tags || []"
+                      v-model="manager.selectedTags"
+                      label="Allowed tags"
+                      emit-value
+                      @update:model-value="updateManagerTags(manager, $event)"
+                      :loading="managerTagLoading[manager.id] || false"
+                      :disable="!inventory?.tags?.length"
+                      style="min-width: 260px"
                     >
-                      <q-tooltip class="bg-white text-primary">Edit</q-tooltip>
-                    </q-btn>
-                    <q-btn
-                      flat
-                      color="grey-6"
-                      size="sm"
-                      padding="md"
-                      icon="delete"
-                      @click="deleteManager(manager.id)"
-                    >
-                      <q-tooltip class="bg-white text-primary"
-                        >Delete</q-tooltip
+                      <template v-slot:prepend>
+                        <q-icon name="sell" />
+                      </template>
+                      <template v-slot:hint>
+                        Select which tags this manager can access
+                      </template>
+                    </q-select>
+                    <q-space></q-space>
+                    <div class="row items-center q-gutter-xs">
+                      <q-btn
+                        flat
+                        color="grey-6"
+                        size="sm"
+                        padding="md"
+                        icon="edit"
+                        @click="showManagerDialog(manager.id)"
                       >
-                    </q-btn>
+                        <q-tooltip class="bg-white text-primary">Edit</q-tooltip>
+                      </q-btn>
+                      <q-btn
+                        flat
+                        color="grey-6"
+                        size="sm"
+                        padding="md"
+                        icon="delete"
+                        @click="deleteManager(manager.id)"
+                      >
+                        <q-tooltip class="bg-white text-primary"
+                          >Delete</q-tooltip
+                        >
+                      </q-btn>
+                    </div>
                   </div>
                 </div>
               </q-card-section>

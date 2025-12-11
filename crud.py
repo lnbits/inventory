@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from lnbits.db import Database, Filters, Page
 from lnbits.helpers import urlsafe_short_hash
 
-from .helpers import create_api_key
+from .helpers import check_item_tags, create_api_key, split_tags
 from .models import (
     Category,
     CreateCategory,
@@ -260,15 +260,37 @@ async def delete_inventory_managers(inventory_id: str) -> None:
     )
 
 
-async def get_manager_items(inventory_id: str, manager_id: str) -> list[Item]:
+async def get_inventory_items(inventory_id: str) -> list[Item]:
     return await db.fetchall(
         """
         SELECT * FROM inventory.items
-        WHERE inventory_id = :inventory_id AND manager_id = :manager_id
+        WHERE inventory_id = :inventory_id
         """,
-        {"inventory_id": inventory_id, "manager_id": manager_id},
+        {"inventory_id": inventory_id},
         model=Item,
     )
+
+
+def manager_can_access_item(manager: Manager, item: Item) -> bool:
+    # No restriction when manager has no tag limitations
+    if manager.tags is None:
+        return True
+
+    allowed_tags = split_tags(manager.tags)
+    # Explicitly disallow when the manager has no allowed tags configured
+    if not allowed_tags:
+        return False
+
+    item_tags = split_tags(item.tags)
+    if not item_tags:
+        return False
+
+    return check_item_tags(allowed_tags, item_tags)
+
+
+async def get_manager_items(inventory_id: str, manager: Manager) -> list[Item]:
+    items = await get_inventory_items(inventory_id)
+    return [item for item in items if manager_can_access_item(manager, item)]
 
 
 async def create_external_service(data: CreateExternalService) -> ExternalService:

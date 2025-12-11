@@ -118,12 +118,18 @@ class CreateManager(BaseModel):
     inventory_id: str
     name: str
     email: str | None = None
+    tags: str | None = None
 
 
 class Manager(CreateManager):
     id: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ManagerQuantityUpdate(BaseModel):
+    inventory_id: str
+    quantity_in_stock: int
 
 
 # External services that can update inventory via API or webhooks

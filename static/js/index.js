@@ -15,6 +15,7 @@ window.app = Vue.createApp({
       currencyOptions: [],
       inventory: null,
       managers: [],
+      managerTagLoading: {},
       services: [],
       items: [],
       logs: [],
@@ -307,6 +308,46 @@ window.app = Vue.createApp({
     }
   },
   methods: {
+    normalizeManager(manager) {
+      const inventoryTags = this.inventory?.tags || []
+      const rawTags = manager.tags
+      let parsedTags = null
+      if (rawTags === '' || rawTags === false) {
+        parsedTags = []
+      } else if (rawTags === null || rawTags === undefined) {
+        parsedTags = null
+      } else if (Array.isArray(rawTags)) {
+        parsedTags = rawTags
+      } else {
+        parsedTags = fromCsv(rawTags)
+      }
+      return {
+        ...manager,
+        tags: parsedTags,
+        selectedTags:
+          parsedTags === null ? [...inventoryTags] : [...parsedTags]
+      }
+    },
+    prepareManagerTags(selectedTags) {
+      if (selectedTags === null) {
+        return null
+      }
+      const tags = Array.isArray(selectedTags)
+        ? selectedTags.filter(Boolean)
+        : []
+      const inventoryTags = this.inventory?.tags || []
+      if (tags.length === 0) {
+        return inventoryTags.length === 0 ? null : ''
+      }
+      const hasAllInventoryTags =
+        inventoryTags.length &&
+        tags.length === inventoryTags.length &&
+        tags.every(tag => inventoryTags.includes(tag))
+      if (hasAllInventoryTags) {
+        return null
+      }
+      return toCsv(tags)
+    },
     showInventoryDialog() {
       this.inventoryDialog.show = true
       if (this.inventory) {
@@ -672,7 +713,7 @@ window.app = Vue.createApp({
           'GET',
           `/inventory/api/v1/managers/${this.openInventory}`
         )
-        this.managers = [...data]
+        this.managers = [...data].map(manager => this.normalizeManager(manager))
       } catch (error) {
         console.error('Error fetching managers:', error)
         LNbits.utils.notifyError(error)
@@ -702,14 +743,24 @@ window.app = Vue.createApp({
     },
     async createManager(data) {
       try {
-        const payload = {...data}
+        const tagSelection =
+          data.tags === undefined ? this.inventory?.tags ?? [] : data.tags
+        const payload = {
+          inventory_id: data.inventory_id,
+          name: data.name,
+          email: data.email,
+          tags: this.prepareManagerTags(tagSelection)
+        }
         const {data: createdManager} = await LNbits.api.request(
           'POST',
           `/inventory/api/v1/managers/${this.openInventory}`,
           null,
           payload
         )
-        this.managers = [...this.managers, createdManager]
+        this.managers = [
+          ...this.managers,
+          this.normalizeManager(createdManager)
+        ]
       } catch (error) {
         console.error('Error creating manager:', error)
         LNbits.utils.notifyError(error)
@@ -719,14 +770,23 @@ window.app = Vue.createApp({
     },
     async updateManager(data) {
       try {
+        const tagSelection =
+          data.tags === undefined ? null : data.tags
+        const payload = {
+          inventory_id: data.inventory_id,
+          name: data.name,
+          email: data.email,
+          tags: this.prepareManagerTags(tagSelection)
+        }
         const {data: updatedManager} = await LNbits.api.request(
           'PUT',
           `/inventory/api/v1/managers/${data.id}`,
           null,
           payload
         )
+        const normalizedManager = this.normalizeManager(updatedManager)
         this.managers = this.managers.map(manager =>
-          manager.id === updatedManager.id ? updatedManager : manager
+          manager.id === normalizedManager.id ? normalizedManager : manager
         )
       } catch (error) {
         console.error('Error updating manager:', error)
@@ -755,6 +815,38 @@ window.app = Vue.createApp({
             LNbits.utils.notifyError(error)
           }
         })
+    },
+    async updateManagerTags(manager, selectedTags) {
+      this.managerTagLoading = {
+        ...this.managerTagLoading,
+        [manager.id]: true
+      }
+      const payload = {
+        inventory_id: manager.inventory_id,
+        name: manager.name,
+        email: manager.email,
+        tags: this.prepareManagerTags(selectedTags)
+      }
+      try {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          `/inventory/api/v1/managers/${manager.id}`,
+          null,
+          payload
+        )
+        const normalized = this.normalizeManager(data)
+        this.managers = this.managers.map(mgr =>
+          mgr.id === normalized.id ? normalized : mgr
+        )
+      } catch (error) {
+        console.error('Error updating manager tags:', error)
+        LNbits.utils.notifyError(error)
+      } finally {
+        this.managerTagLoading = {
+          ...this.managerTagLoading,
+          [manager.id]: false
+        }
+      }
     },
     async getManagerItems(managerId) {
       return await this.getItemsPaginated({

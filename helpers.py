@@ -32,3 +32,9 @@ def check_item_tags(service_allowed_tags: list[str], item_tags: list[str]) -> bo
     if service_allowed_tags == []:
         return True
     return any(tag in service_allowed_tags for tag in item_tags)
+
+
+def split_tags(tags: str | None) -> list[str]:
+    if not tags:
+        return []
+    return [tag.strip() for tag in tags.split(",") if tag.strip()]

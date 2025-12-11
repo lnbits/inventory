@@ -16,7 +16,7 @@
       <q-card-section>
         <q-table
           :columns="itemsTable.columns"
-          :rows="items"
+          :rows="filteredItems"
           :loading="loadingItems"
           :pagination.sync="itemsTable.pagination"
           row-key="id"
@@ -26,6 +26,46 @@
           flat
           bordered
         >
+          <template v-slot:top>
+            <q-space></q-space>
+            <q-input
+              standout
+              dense
+              debounce="300"
+              color="primary"
+              v-model="itemsTable.search"
+              placeholder="Search items"
+            >
+              <template v-slot:append>
+                <q-icon name="search" />
+              </template>
+            </q-input>
+          </template>
+          <template v-slot:body-cell-quantity_in_stock="props">
+            <q-td :props="props">
+              <div class="row items-center no-wrap q-gutter-sm">
+                <q-input
+                  dense
+                  type="number"
+                  min="0"
+                  style="width: 110px"
+                  v-model.number="props.row._quantityEdit"
+                ></q-input>
+                <q-btn
+                  round
+                  dense
+                  color="primary"
+                  icon="save"
+                  :loading="updatingQuantities[props.row.id]"
+                  :disable="
+                    props.row._quantityEdit === props.row.quantity_in_stock ||
+                    updatingQuantities[props.row.id]
+                  "
+                  @click="updateItemQuantity(props.row)"
+                ></q-btn>
+              </div>
+            </q-td>
+          </template>
         </q-table>
       </q-card-section>
     </q-card>
@@ -45,7 +85,9 @@
       return {
         inventory: null,
         manager: null,
+        managerAllowedTags: [],
         items: [],
+        updatingQuantities: {},
         loadingItems: false,
         itemsTable: {
           columns: [
@@ -78,11 +120,13 @@
               label: 'Price',
               field: 'price',
               sortable: true,
-              format: (_, row) =>
-                LNbits.utils.formatCurrency(
-                  row.price,
-                  this.openInventoryCurrency
-                )
+              format: (_, row) => {
+                const currency = this.inventory?.currency
+                const normalized = this.normalizeCurrency(currency)
+                return this.checkIsSat(normalized)
+                  ? `${row.price} sats`
+                  : LNbits.utils.formatCurrency(row.price, normalized)
+              }
             },
             {
               name: 'discount',
@@ -141,17 +185,48 @@
         itemDialog: {
           show: false,
           data: {},
-          gallery: []
+          gallery: [],
+          currency: null
         }
       }
     },
     async created() {
       this.manager = manager
       this.inventory = inventory
+      this.inventory.tags = fromCsv(this.inventory.tags)
+      const allowed = this.manager.tags ? fromCsv(this.manager.tags) : null
+      this.managerAllowedTags = allowed || [...this.inventory.tags]
+      // Limit selectable tags to what the manager is allowed to use
+      this.inventory.tags = [...this.managerAllowedTags]
+      this.itemDialog.currency = this.normalizeCurrency(this.inventory.currency)
+      this.itemDialog.data.currency = this.itemDialog.currency
       await this.getManagerItems()
       console.log('Manager page created', this.g)
     },
-    computed: {},
+    computed: {
+      filteredItems() {
+        const term = (this.itemsTable.search || '').toLowerCase().trim()
+        if (!term) return this.items
+        const match = value =>
+          (value || '')
+            .toString()
+            .toLowerCase()
+            .includes(term)
+
+        return this.items.filter(item => {
+          return (
+            match(item.name) ||
+            match(item.description) ||
+            match(item.id) ||
+            match(item.price) ||
+            match(item.tags && item.tags.join(','))
+          )
+        })
+      },
+      allowCurrencyDecimals() {
+        return (this.getCurrencyDecimals(this.itemDialog.currency) || 0) > 0
+      }
+    },
     methods: {
       async getManagerItems() {
         this.loadingItems = true
@@ -161,9 +236,17 @@
             `/inventory/api/v1/manager/${manager.id}/items`
           )
           this.itemsTable.rowsNumber = response.data.length
-          this.itemsTable.data = response.data
-          console.log('Fetched manager items:', response.data)
-          this.items = response.data.map(item => mapItems(item))
+          const mappedItems = response.data.map(item => {
+            const mapped = mapItems(item)
+            mapped._quantityEdit =
+              mapped.quantity_in_stock !== null &&
+              mapped.quantity_in_stock !== undefined
+                ? mapped.quantity_in_stock
+                : 0
+            return mapped
+          })
+          console.log('Fetched manager items:', mappedItems)
+          this.items = mappedItems
         } catch (error) {
           console.error('Error fetching manager items:', error)
           LNbits.utils.notifyError('Failed to load items for this manager.')
@@ -171,11 +254,47 @@
           this.loadingItems = false
         }
       },
+      normalizeCurrency(currency) {
+        if (!currency) return 'sat'
+        return ['sat', 'sats'].includes(currency.toLowerCase())
+          ? 'sat'
+          : currency.toUpperCase()
+      },
+      checkIsSat(currency) {
+        return ['sat', 'sats'].includes((currency || '').toLowerCase())
+      },
+      getCurrencyDecimals(currency) {
+        const normalized = this.normalizeCurrency(currency)
+        if (this.checkIsSat(normalized)) return 0
+        try {
+          const resolved = new Intl.NumberFormat(window.i18n.global.locale, {
+            style: 'currency',
+            currency: normalized
+          }).resolvedOptions()
+          return resolved.maximumFractionDigits || 0
+        } catch (error) {
+          return 2
+        }
+      },
       showItemDialog(id) {
         this.itemDialog.show = true
+        // Ensure tag options and defaults are set
+        const currency =
+          this.inventory && this.inventory.currency
+            ? this.normalizeCurrency(this.inventory.currency)
+            : 'sat'
+        this.itemDialog.currency = currency
+        const defaultTags =
+          this.managerAllowedTags && this.managerAllowedTags.length
+            ? [...this.managerAllowedTags]
+            : []
         if (id) {
           const item = this.items.find(it => it.id === id)
-          this.itemDialog.data = {...item}
+          this.itemDialog.data = {
+            ...item,
+            currency,
+            tags: item.tags && item.tags.length ? [...item.tags] : defaultTags
+          }
           this.itemDialog.gallery = item.images.map(img => {
             return {
               assetId: null,
@@ -186,7 +305,10 @@
           })
           return
         }
-        this.itemDialog.data = {}
+        this.itemDialog.data = {
+          currency,
+          tags: defaultTags
+        }
       },
       closeItemDialog() {
         this.itemDialog.show = false
@@ -220,7 +342,13 @@
             this.itemDialog.data
           )
           console.log('Item added:', data)
-          this.items = [...this.items, data]
+          const mapped = mapItems(data)
+          mapped._quantityEdit =
+            mapped.quantity_in_stock !== null &&
+            mapped.quantity_in_stock !== undefined
+              ? mapped.quantity_in_stock
+              : 0
+          this.items = [...this.items, mapped]
         } catch (error) {
           console.error('Error adding item:', error)
           LNbits.utils.notifyError(error)
@@ -248,12 +376,18 @@
         try {
           const {data: updatedItem} = await LNbits.api.request(
             'PUT',
-            `/inventory/api/v1/items/${data.id}`,
+            `/inventory/api/v1/managers/${this.manager.id}/item/${data.id}`,
             null,
             data
           )
+          const mapped = mapItems(updatedItem)
+          mapped._quantityEdit =
+            mapped.quantity_in_stock !== null &&
+            mapped.quantity_in_stock !== undefined
+              ? mapped.quantity_in_stock
+              : 0
           this.items = this.items.map(item =>
-            item.id === updatedItem.id ? mapItems(updatedItem) : item
+            item.id === mapped.id ? mapped : item
           )
         } catch (error) {
           console.error('Error updating item:', error)
@@ -274,7 +408,7 @@
             try {
               await LNbits.api.request(
                 'DELETE',
-                `/inventory/api/v1/items/${id}`
+                `/inventory/api/v1/managers/${this.manager.id}/item/${id}`
               )
               this.items = this.items.filter(item => item.id !== id)
             } catch (error) {
@@ -282,6 +416,41 @@
               LNbits.utils.notifyError(error)
             }
           })
+      },
+      async updateItemQuantity(item) {
+        this.updatingQuantities = {
+          ...this.updatingQuantities,
+          [item.id]: true
+        }
+        try {
+          const payload = {
+            inventory_id: this.inventory.id,
+            quantity_in_stock: Number(item._quantityEdit)
+          }
+          const {data} = await LNbits.api.request(
+            'PUT',
+            `/inventory/api/v1/manager/${this.manager.id}/item/${item.id}/quantity`,
+            null,
+            payload
+          )
+          const mapped = mapItems(data)
+          mapped._quantityEdit =
+            mapped.quantity_in_stock !== null &&
+            mapped.quantity_in_stock !== undefined
+              ? mapped.quantity_in_stock
+              : 0
+          this.items = this.items.map(it =>
+            it.id === mapped.id ? mapped : it
+          )
+        } catch (error) {
+          console.error('Error updating item quantity:', error)
+          LNbits.utils.notifyError('Failed to update quantity.')
+        } finally {
+          this.updatingQuantities = {
+            ...this.updatingQuantities,
+            [item.id]: false
+          }
+        }
       }
     }
   })
