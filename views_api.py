@@ -1,8 +1,6 @@
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
 from lnbits.core.models import User, WalletTypeInfo
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
@@ -15,23 +13,16 @@ from lnbits.decorators import (
 from lnbits.helpers import generate_filter_params_openapi
 
 from .crud import (
-    check_idempotency,
     create_category,
-    create_external_service,
     create_inventory,
-    create_inventory_update_log,
     create_item,
     create_manager,
-    delete_external_service,
     delete_inventory,
-    delete_inventory_external_services,
     delete_inventory_items,
     delete_inventory_managers,
     delete_inventory_update_logs,
     delete_item,
     delete_manager,
-    get_external_service,
-    get_external_services,
     get_inventories,
     get_inventory,
     get_inventory_categories,
@@ -45,21 +36,17 @@ from .crud import (
     get_managers,
     get_public_inventory,
     is_category_unique,
-    update_external_service,
     update_inventory,
     update_item,
     update_manager,
 )
-from .helpers import check_item_tags, extract_token_payload, split_tags
+from .helpers import split_tags
 from .models import (
     Category,
     CreateCategory,
-    CreateExternalService,
     CreateInventory,
-    CreateInventoryUpdateLog,
     CreateItem,
     CreateManager,
-    ExternalService,
     Inventory,
     InventoryLogFilters,
     Item,
@@ -67,8 +54,6 @@ from .models import (
     Manager,
     ManagerQuantityUpdate,
     PublicItem,
-    UpdateSource,
-    WebhookPayload,
 )
 
 inventory_ext_api = APIRouter()
@@ -136,11 +121,10 @@ async def api_delete_inventory(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Cannot delete inventory.",
-        )
-    # delete all related data (items, categories, managers, services, logs) in cascade
+    )
+    # delete all related data (items, categories, managers, logs) in cascade
     await delete_inventory_items(inventory_id)
     await delete_inventory_managers(inventory_id)
-    await delete_inventory_external_services(inventory_id)
     await delete_inventory_update_logs(inventory_id)
     # finally delete the inventory
     await delete_inventory(user.id, inventory_id)
@@ -580,81 +564,6 @@ async def api_manager_delete_item(
     await delete_item(item_id)
 
 
-## external services
-@inventory_ext_api.post("/api/v1/services", status_code=HTTPStatus.CREATED)
-async def api_create_service(
-    data: CreateExternalService,
-    user: User = Depends(check_user_exists),
-):
-    inventory = await get_inventory(user.id, data.inventory_id)
-    if not inventory or inventory.user_id != user.id:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Cannot create external service.",
-        )
-    return await create_external_service(data)
-
-
-@inventory_ext_api.put("/api/v1/services/{service_id}", status_code=HTTPStatus.OK)
-async def api_update_service(
-    service_id: str,
-    data: ExternalService,
-    user: User = Depends(check_user_exists),
-):
-    service = await get_external_service(service_id)
-    if not service:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="External service not found.",
-        )
-    inventory = await get_inventory(user.id, service.inventory_id)
-    if not inventory or inventory.user_id != user.id:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Cannot update external service.",
-        )
-    for field, value in data.dict().items():
-        setattr(service, field, value)
-    return await update_external_service(service)
-
-
-@inventory_ext_api.get("/api/v1/services/{inventory_id}", status_code=HTTPStatus.OK)
-async def api_get_services(
-    inventory_id: str,
-    user: User = Depends(check_user_exists),
-):
-    inventory = await get_inventory(user.id, inventory_id)
-    if not inventory or inventory.user_id != user.id:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Cannot access external services.",
-        )
-    return await get_external_services()
-
-
-@inventory_ext_api.delete(
-    "/api/v1/services/{service_id}", status_code=HTTPStatus.NO_CONTENT
-)
-async def api_delete_service(
-    service_id: str,
-    user: User = Depends(check_user_exists),
-):
-    service = await get_external_service(service_id)
-    if not service:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="External service not found.",
-        )
-    inventory = await get_inventory(user.id, service.inventory_id)
-    if not inventory or inventory.user_id != user.id:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Cannot delete external service.",
-        )
-    await delete_external_service(service_id)
-
-
-# STOCK LOGS
 @inventory_ext_api.get(
     "/api/v1/logs/{inventory_id}/paginated",
     openapi_extra=generate_filter_params_openapi(InventoryLogFilters),
@@ -674,81 +583,3 @@ async def api_get_inventory_logs(
 
     page = await get_inventory_update_logs_paginated(inventory_id, filters)
     return page
-
-
-# Webhook
-bearer_scheme = HTTPBearer()
-
-
-@inventory_ext_api.post("/api/v1/webhooks/stock-update", status_code=HTTPStatus.CREATED)
-async def api_webhook_stock_update(
-    data: WebhookPayload,
-    auth: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-):
-    if not auth.credentials:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED, detail="No API key provided."
-        )
-    payload = extract_token_payload(auth.credentials)
-
-    external_service = await get_external_service(payload["service_id"])
-    if not external_service:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="External service not found.",
-        )
-    if not external_service.is_active:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="External service is inactive.",
-        )
-
-    # check if idempotency key has been used
-    if await check_idempotency(data.idempotency_key):
-        return {"detail": "Request already processed."}
-
-    # Process stock updates
-    item_ids = [item.item_id for item in data.items]
-    existing_items = await get_items_by_ids(data.inventory_id, item_ids)
-
-    if external_service.tags:
-        allowed_tags = external_service.tags.split(",")
-        for item in existing_items:
-            if not check_item_tags(
-                allowed_tags if external_service.tags else [],
-                item.tags.split(",") if item.tags else [],
-            ):
-                raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN,
-                    detail=f"Item {item.id} has tags not allowed by the external service.",
-                )
-
-    for item_data in data.items:
-        matched_item: Item | None = next(
-            (i for i in existing_items if i.id == item_data.item_id), None
-        )
-        if not matched_item:
-            continue  # skip non-existing items
-
-        quantity_before = matched_item.quantity_in_stock or 0
-        quantity_after = quantity_before - item_data.quantity_change
-        quantity_change = item_data.quantity_change
-
-        # Update item stock
-        matched_item.quantity_in_stock = quantity_after
-        await update_item(matched_item)
-
-        inventory_log = CreateInventoryUpdateLog(
-            inventory_id=data.inventory_id,
-            item_id=matched_item.id,
-            quantity_change=-quantity_change,
-            quantity_before=quantity_before,
-            quantity_after=quantity_after,
-            source=UpdateSource.WEBHOOK,
-            external_service_id=external_service.id,
-            idempotency_key=data.idempotency_key,
-        )
-
-        # Log the update
-        await create_inventory_update_log(inventory_log)
-        await update_external_service(external_service)

@@ -157,6 +157,23 @@
                 <span v-else>-</span>
               </q-td>
             </template>
+            <template v-slot:body-cell-omit_tags="props">
+              <q-td :props="props">
+                <template v-if="props.row.omit_tags && props.row.omit_tags.length">
+                  <q-chip
+                    v-for="tag in props.row.omit_tags"
+                    :key="tag"
+                    dense
+                    color="negative"
+                    text-color="white"
+                    class="q-mr-xs q-mb-xs bg-negative text-white"
+                  >
+                    {{ tag }}
+                  </q-chip>
+                </template>
+                <span v-else>-</span>
+              </q-td>
+            </template>
             <template v-slot:body="props">
               <q-tr :props="props">
                 <q-td auto-width class="q-gutter-x-sm">
@@ -197,6 +214,25 @@
                       color="primary"
                       text-color="white"
                       class="q-mr-xs q-mb-xs"
+                    >
+                      <span v-text="tag"></span>
+                    </q-chip>
+                  </template>
+                  <template
+                    v-else-if="
+                      col.name === 'omit_tags' &&
+                      (Array.isArray(props.row.omit_tags)
+                        ? props.row.omit_tags.length
+                        : !!(props.row.omit_tags || '').length)
+                    "
+                  >
+                    <q-chip
+                      v-for="tag in (Array.isArray(props.row.omit_tags) ? props.row.omit_tags : (props.row.omit_tags || '').split(','))"
+                      :key="tag"
+                      dense
+                      color="negative"
+                      text-color="white"
+                      class="q-mr-xs q-mb-xs bg-negative text-white"
                     >
                       <span v-text="tag"></span>
                     </q-chip>
@@ -400,94 +436,6 @@
           </q-expansion-item>
         </q-list>
       </div>
-    </section>
-    <section v-if="tab === 'services'">
-      <q-toolbar class="q-mb-md q-px-none">
-        <q-btn
-          color="primary"
-          label="Add Service"
-          @click="serviceDialog.show = true"
-        ></q-btn>
-      </q-toolbar>
-      <q-card v-if="services.length" class="q-pa-lg">
-        <q-table
-          flat
-          bordered
-          title="Services"
-          :rows="services"
-          :columns="servicesTable.columns"
-          row-key="id"
-          v-model:pagination="servicesTable.pagination"
-          @request="getServicesPaginated"
-          :loading="loadingServices"
-          no-data-label="No services yet..."
-          no-results-label="No results found"
-        >
-          <template v-slot:top>
-            <q-space></q-space>
-            <q-input
-              standout
-              dense
-              debounce="300"
-              color="primary"
-              v-model="servicesTable.search"
-            >
-              <template v-slot:append>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-          </template>
-          <template v-slot:header="props">
-            <q-tr :props="props">
-              <q-th auto-width></q-th>
-              <q-th
-                v-for="col in props.cols"
-                :key="col.name"
-                :props="props"
-                v-text="col.label"
-              ></q-th>
-            </q-tr>
-          </template>
-          <template v-slot:body="props">
-            <q-tr :props="props">
-              <q-td auto-width>
-                <q-btn
-                  flat
-                  color="grey-6"
-                  size="sm"
-                  padding="md"
-                  @click="deleteService(props.row.id)"
-                  icon="delete"
-                ></q-btn>
-                <q-btn
-                  flat
-                  color="grey-6"
-                  size="sm"
-                  padding="md"
-                  @click="showServiceDialog(props.row.id)"
-                  icon="edit"
-                ></q-btn>
-              </q-td>
-
-              <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                <span v-text="col.value"></span>
-                <q-btn
-                  v-if="col.name === 'api_key'"
-                  icon="content_copy"
-                  size="sm"
-                  padding="sm"
-                  color="grey-6"
-                  flat
-                  class="cursor-pointer q-mr-xs"
-                  @click="copyText(props.row.api_key)"
-                >
-                  <q-tooltip>Copy API Key</q-tooltip>
-                </q-btn>
-              </q-td>
-            </q-tr>
-          </template>
-        </q-table>
-      </q-card>
     </section>
     <section v-if="tab === 'orders'">
       <q-toolbar class="q-mb-md q-px-none">

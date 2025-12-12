@@ -32,7 +32,19 @@
         new-value-mode="add-unique"
         v-model="inventoryDialog.data.tags"
         label="Allowed Tags"
-        hint="Define tags available to this inventory (e.g., main, web, shop)"
+        hint="Inventory tags for categories or service scoping (e.g., soap, candles, webshop-only, pos-only)"
+      ></q-select>
+      <q-select
+        filled
+        dense
+        multiple
+        use-input
+        use-chips
+        hide-dropdown-icon
+        new-value-mode="add-unique"
+        v-model="inventoryDialog.data.omit_tags"
+        label="Omit Tags"
+        hint="Tags used to exclude products (e.g., not_for_pos, not_for_webshop)"
       ></q-select>
       <q-input
         filled
@@ -289,10 +301,22 @@
         filled
         multiple
         use-chips
+        color="primary"
         :options="inventory.tags"
         v-model="itemDialog.data.tags"
         label="Tags"
         hint="Select tags for this item"
+      >
+      </q-select>
+      <q-select
+        filled
+        multiple
+        use-chips
+        color="negative"
+        :options="inventory.omit_tags || []"
+        v-model="itemDialog.data.omit_tags"
+        label="Omit Tags"
+        hint="Select exclusion tags for this item"
       >
       </q-select>
       <q-toggle
@@ -354,60 +378,6 @@
           :disable="!managerDialog.data.name"
           type="submit"
           >Create Manager</q-btn
-        >
-      </q-card-actions>
-    </q-form>
-  </q-card>
-</q-dialog>
-
-<q-dialog
-  v-if="serviceDialog"
-  v-model="serviceDialog.show"
-  position="top"
-  @hide="closeServiceDialog"
->
-  <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-    <q-form @submit="submitServiceData" class="q-gutter-md">
-      <q-input
-        filled
-        dense
-        v-model.trim="serviceDialog.data.service_name"
-        label="Service Name *"
-        hint="Service identifier for your reference"
-      ></q-input>
-      <q-input
-        filled
-        dense
-        v-model.trim="serviceDialog.data.description"
-        label="Service Description (Optional)"
-      ></q-input>
-      <q-select
-        filled
-        dense
-        multiple
-        use-chips
-        v-model="serviceDialog.data.tags"
-        :options="inventory.tags"
-        label="Tags"
-        hint="Select item tags this service can access. Leave empty to allow all tags."
-      ></q-select>
-      <q-card-actions class="q-mt-lg" align="between">
-        <q-btn v-close-popup flat color="grey">Cancel</q-btn>
-        <q-btn
-          v-if="serviceDialog.data.id"
-          unelevated
-          color="primary"
-          type="submit"
-          :disable="!serviceDialog.data.service_name"
-          >Update Service</q-btn
-        >
-        <q-btn
-          v-else
-          unelevated
-          color="primary"
-          :disable="!serviceDialog.data.service_name"
-          type="submit"
-          >Create Service</q-btn
         >
       </q-card-actions>
     </q-form>

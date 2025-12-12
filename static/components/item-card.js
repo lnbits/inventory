@@ -76,6 +76,18 @@ window.app.component('item-card', {
               {{ tag }}
             </q-chip>
           </div>
+          <div v-if="item.omit_tags && item.omit_tags.length" class="q-pb-sm">
+            <q-chip
+              v-for="tag in item.omit_tags"
+              :key="tag"
+              dense
+              color="negative"
+              text-color="white"
+              class="q-mr-xs q-mb-xs bg-negative text-white"
+            >
+              {{ tag }}
+            </q-chip>
+          </div>
           <div class="text-subtitle1 text-justify">
             <div>
               <span>Price: </span>

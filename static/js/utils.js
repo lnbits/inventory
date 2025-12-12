@@ -20,6 +20,7 @@ function mapItems(obj) {
     obj.tax_rate = Number(obj.tax_rate.toFixed(2))
   }
   obj.tags = fromCsv(obj.tags)
+  obj.omit_tags = fromCsv(obj.omit_tags)
   obj.images = isBase64String(obj.images)
     ? fromCsv(obj.images, '|||')
     : fromCsv(obj.images)

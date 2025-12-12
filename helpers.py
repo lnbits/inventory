@@ -3,19 +3,7 @@ from http import HTTPStatus
 import jwt
 from fastapi import HTTPException
 
-from lnbits.helpers import create_access_token
 from lnbits.settings import settings
-
-
-def create_api_key(inventory_id: str, service_id: str) -> str:
-    """Generate a new API key for external services."""
-    api_key = create_access_token(
-        {
-            "inventory_id": inventory_id,
-            "service_id": service_id,
-        }
-    )
-    return api_key
 
 
 def extract_token_payload(token: str):

@@ -8,7 +8,6 @@ window.app = Vue.createApp({
       tabOptions: [
         {label: 'Items', value: 'items'},
         {label: 'Stock Managers', value: 'managers'},
-        {label: 'Services', value: 'services'},
         {label: 'Stock Logs', value: 'orders'},
         {label: 'Settings', value: 'settings'}
       ],
@@ -16,7 +15,6 @@ window.app = Vue.createApp({
       inventory: null,
       managers: [],
       managerTagLoading: {},
-      services: [],
       items: [],
       logs: [],
       inventoryDialog: {
@@ -24,10 +22,6 @@ window.app = Vue.createApp({
         data: {}
       },
       managerDialog: {
-        show: false,
-        data: {}
-      },
-      serviceDialog: {
         show: false,
         data: {}
       },
@@ -116,6 +110,14 @@ window.app = Vue.createApp({
             format: val => (val ? val.toString() : '')
           },
           {
+            name: 'omit_tags',
+            align: 'left',
+            label: 'Omit Tags',
+            field: 'omit_tags',
+            sortable: true,
+            format: val => (val ? val.toString() : '')
+          },
+          {
             name: 'categories',
             align: 'left',
             label: 'Categories',
@@ -151,75 +153,6 @@ window.app = Vue.createApp({
       },
       loadingItems: false,
       categories: [],
-      servicesTable: {
-        columns: [
-          {
-            name: 'name',
-            align: 'left',
-            label: 'Name',
-            field: 'service_name',
-            sortable: true
-          },
-          {
-            name: 'description',
-            align: 'left',
-            label: 'Description',
-            field: 'description',
-            sortable: false,
-            format: val => (val || '').substring(0, 50)
-          },
-          {
-            name: 'api_key',
-            align: 'left',
-            label: 'API Key',
-            field: 'api_key',
-            sortable: true,
-            format: val =>
-              val
-                ? val.substring(0, 8) + '...' + val.substring(val.length - 8)
-                : ''
-          },
-          {
-            name: 'tags',
-            align: 'left',
-            label: 'Tags',
-            field: 'tags',
-            sortable: true,
-            format: val => (val ? val.toString() : '')
-          },
-          {
-            name: 'active',
-            align: 'left',
-            label: 'Active',
-            field: 'is_active',
-            sortable: true,
-            format: val => (val ? 'Yes' : 'No')
-          },
-          {
-            name: 'created_at',
-            align: 'left',
-            label: 'Created At',
-            field: 'created_at',
-            format: val => LNbits.utils.formatDateString(val),
-            sortable: true
-          },
-          {
-            name: 'last_used_at',
-            align: 'left',
-            label: 'Last Used At',
-            field: 'last_used_at',
-            format: val => (val ? LNbits.utils.formatDateString(val) : 'Never'),
-            sortable: true
-          }
-        ],
-        pagination: {
-          rowsPerPage: 10,
-          page: 1,
-          rowsNumber: 10
-        },
-        search: '',
-        filter: {}
-      },
       stockLogsTable: {
         columns: [
           {
@@ -248,13 +181,6 @@ window.app = Vue.createApp({
             align: 'left',
             label: 'Item ID',
             field: 'item_id',
-            sortable: true
-          },
-          {
-            name: 'external_service_id',
-            align: 'left',
-            label: 'External Service ID',
-            field: 'external_service_id',
             sortable: true
           },
           {
@@ -300,8 +226,6 @@ window.app = Vue.createApp({
         this.itemsTable.search = ''
         this.itemsTable.filter = {is_approved: true}
         await this.getItemsPaginated()
-      } else if (newTab === 'services') {
-        await this.getServices()
       } else if (newTab === 'orders') {
         await this.getStockLogsPaginated()
       }
@@ -355,7 +279,12 @@ window.app = Vue.createApp({
           typeof this.inventory.tags === 'string'
             ? fromCsv(this.inventory.tags)
             : this.inventory.tags || []
+        const omitTags =
+          typeof this.inventory.omit_tags === 'string'
+            ? fromCsv(this.inventory.omit_tags)
+            : this.inventory.omit_tags || []
         this.inventoryDialog.data = {...this.inventory, tags}
+        this.inventoryDialog.data.omit_tags = omitTags
         return
       }
       this.inventoryDialog.data = {}
@@ -371,8 +300,7 @@ window.app = Vue.createApp({
       this.managerDialog.data = {}
     },
     closeServiceDialog() {
-      this.serviceDialog.show = false
-      this.serviceDialog.data = {}
+      return
     },
     createOrUpdateDisabled() {
       if (!this.inventoryDialog.show) return true
@@ -423,6 +351,7 @@ window.app = Vue.createApp({
         }
         const inventoryData = Array.isArray(data) ? data[0] : data
         inventoryData.tags = fromCsv(inventoryData.tags)
+        inventoryData.omit_tags = fromCsv(inventoryData.omit_tags)
         this.inventory = {...inventoryData} // Change to single inventory
         this.openInventory = this.inventory.id
         this.setInventoryCurrencies(this.inventory.currency)
@@ -438,6 +367,9 @@ window.app = Vue.createApp({
       const data = this.inventoryDialog.data
       if (data.tags && Array.isArray(data.tags)) {
         data.tags = data.tags.join(',')
+      }
+      if (data.omit_tags && Array.isArray(data.omit_tags)) {
+        data.omit_tags = data.omit_tags.join(',')
       }
       if (data.id) {
         this.updateInventory(data)
@@ -455,6 +387,7 @@ window.app = Vue.createApp({
           payload
         )
         createdInventory.tags = fromCsv(createdInventory.tags)
+        createdInventory.omit_tags = fromCsv(createdInventory.omit_tags)
         this.inventory = {...createdInventory}
         this.openInventory = this.inventory.id
         this.setInventoryCurrencies(this.inventory.currency)
@@ -476,6 +409,7 @@ window.app = Vue.createApp({
           data
         )
         updatedInventory.tags = fromCsv(updatedInventory.tags)
+        updatedInventory.omit_tags = fromCsv(updatedInventory.omit_tags)
         this.inventory = {...updatedInventory}
       } catch (error) {
         console.error('Error updating inventory:', error)
@@ -500,7 +434,6 @@ window.app = Vue.createApp({
             this.items = []
             this.categories = []
             this.managers = []
-            this.services = []
             this.logs = []
             this.closeInventoryDialog()
             this.$q.notify({
@@ -594,6 +527,7 @@ window.app = Vue.createApp({
     submitItemData() {
       const data = this.itemDialog.data
       data.tags = toCsv(data.tags)
+      data.omit_tags = toCsv(data.omit_tags)
       console.log('Submitting inventory data:', data)
       console.log('photos:', this.itemDialog.gallery)
       if (data.id) {
@@ -855,101 +789,10 @@ window.app = Vue.createApp({
       })
     },
     showServiceDialog(id) {
-      this.serviceDialog.show = true
-      if (id) {
-        const service = this.services.find(svc => svc.id === id)
-        this.serviceDialog.data = {...service}
-        return
-      }
-      this.serviceDialog.data = {}
+      return
     },
     submitServiceData() {
-      const data = this.serviceDialog.data
-      data.inventory_id = this.openInventory
-      if (data.tags && Array.isArray(data.tags)) {
-        data.tags = data.tags.join(',')
-      }
-      if (data.id) {
-        this.updateService(data)
-      } else {
-        this.createService(data)
-      }
-    },
-    async getServices() {
-      try {
-        const {data} = await LNbits.api.request(
-          'GET',
-          `/inventory/api/v1/services/${this.openInventory}`
-        )
-        this.services = [...data].map(service => {
-          if (service.tags && typeof service.tags === 'string') {
-            service.tags = service.tags.split(',').map(tag => tag.trim())
-          } else {
-            service.tags = []
-          }
-          return service
-        })
-      } catch (error) {
-        console.error('Error fetching services:', error)
-        LNbits.utils.notifyError(error)
-      }
-    },
-    async updateService(data) {
-      try {
-        const {data: updatedService} = await LNbits.api.request(
-          'PUT',
-          `/inventory/api/v1/services/${data.id}`,
-          null,
-          data
-        )
-        this.services = this.services.map(service =>
-          service.id === updatedService.id ? updatedService : service
-        )
-        console.log('Service updated:', updatedService)
-      } catch (error) {
-        console.error('Error updating service:', error)
-        LNbits.utils.notifyError(error)
-      } finally {
-        this.closeServiceDialog()
-      }
-    },
-    async createService(data) {
-      try {
-        const {data: createdService} = await LNbits.api.request(
-          'POST',
-          `/inventory/api/v1/services`,
-          null,
-          data
-        )
-        this.services = [...this.services, createdService]
-        console.log('Service created:', createdService)
-      } catch (error) {
-        console.error('Error creating service:', error)
-        LNbits.utils.notifyError(error)
-      } finally {
-        this.closeServiceDialog()
-      }
-    },
-    async deleteService(id) {
-      this.$q
-        .dialog({
-          title: 'Confirm Deletion',
-          message: 'Are you sure you want to delete this service?',
-          cancel: true,
-          persistent: true
-        })
-        .onOk(async () => {
-          try {
-            await LNbits.api.request(
-              'DELETE',
-              `/inventory/api/v1/services/${id}`
-            )
-            this.services = this.services.filter(service => service.id !== id)
-          } catch (error) {
-            console.error('Error deleting service:', error)
-            LNbits.utils.notifyError(error)
-          }
-        })
+      return
     },
     async getStockLogsPaginated(props) {
       console.log('Getting paginated stock logs with props:', props)

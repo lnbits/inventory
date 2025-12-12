@@ -194,6 +194,7 @@
       this.manager = manager
       this.inventory = inventory
       this.inventory.tags = fromCsv(this.inventory.tags)
+      this.inventory.omit_tags = fromCsv(this.inventory.omit_tags)
       const allowed = this.manager.tags ? fromCsv(this.manager.tags) : null
       this.managerAllowedTags = allowed || [...this.inventory.tags]
       // Limit selectable tags to what the manager is allowed to use
@@ -288,12 +289,19 @@
           this.managerAllowedTags && this.managerAllowedTags.length
             ? [...this.managerAllowedTags]
             : []
+        const defaultOmitTags = Array.isArray(this.inventory.omit_tags)
+          ? [...this.inventory.omit_tags]
+          : []
         if (id) {
           const item = this.items.find(it => it.id === id)
           this.itemDialog.data = {
             ...item,
             currency,
-            tags: item.tags && item.tags.length ? [...item.tags] : defaultTags
+            tags: item.tags && item.tags.length ? [...item.tags] : defaultTags,
+            omit_tags:
+              item.omit_tags && item.omit_tags.length
+                ? [...item.omit_tags]
+                : defaultOmitTags
           }
           this.itemDialog.gallery = item.images.map(img => {
             return {
@@ -307,7 +315,8 @@
         }
         this.itemDialog.data = {
           currency,
-          tags: defaultTags
+          tags: defaultTags,
+          omit_tags: defaultOmitTags
         }
       },
       closeItemDialog() {
@@ -322,6 +331,7 @@
       submitItemData() {
         const data = this.itemDialog.data
         data.tags = toCsv(data.tags)
+        data.omit_tags = toCsv(data.omit_tags)
         if (data.id) {
           this.updateItem(data)
         } else {

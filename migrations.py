@@ -19,11 +19,32 @@ async def m001_initial(db: Database):
             default_tax_rate REAL DEFAULT 0.00,
             is_tax_inclusive BOOLEAN DEFAULT TRUE,
             tags TEXT,
+            omit_tags TEXT,
             created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
             updated_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
         );
     """
     )
+
+
+async def m002_add_omit_tags(db: Database):
+    """
+    Add omit_tags column to inventories for existing databases.
+    """
+    existing_column = await db.fetchone(
+        """
+        SELECT 1
+        FROM pragma_table_info('inventories')
+        WHERE name = 'omit_tags'
+        """
+    )
+    if not existing_column:
+        await db.execute(
+            """
+            ALTER TABLE inventory.inventories
+            ADD COLUMN omit_tags TEXT;
+            """
+        )
 
     """
     -- Table: categories
@@ -44,13 +65,12 @@ async def m001_initial(db: Database):
     """
     )
 
-    """
-    -- Table: items
-    -- Purpose: Stores individual items within an inventory, including stock, pricing,
-       discounts, and optional category assignment. Core table for inventory management
-       and API callbacks.
-    """
 
+async def m003_add_item_omit_tags(db: Database):
+    """
+    Add omit_tags column to items for existing databases.
+    """
+    # Ensure items table exists with omit_tags column for fresh installs
     await db.execute(
         f"""
         CREATE TABLE IF NOT EXISTS inventory.items (
@@ -70,6 +90,7 @@ async def m001_initial(db: Database):
             external_id TEXT,
             is_active BOOLEAN DEFAULT TRUE,
             tags TEXT,
+            omit_tags TEXT,
             internal_note TEXT,
             manager_id TEXT,
             is_approved BOOLEAN DEFAULT FALSE,
@@ -79,25 +100,20 @@ async def m001_initial(db: Database):
     """
     )
 
-    """
-    -- Table: external services
-    -- Purpose: external services that can interact with the inventory system.
-    """
-    await db.execute(
-        f"""
-        CREATE TABLE IF NOT EXISTS inventory.external_services (
-            id TEXT PRIMARY KEY,
-            inventory_id TEXT NOT NULL,
-            service_name TEXT NOT NULL,
-            description TEXT,
-            tags TEXT,
-            api_key TEXT NOT NULL,
-            is_active BOOLEAN DEFAULT TRUE,
-            created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
-            last_used_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
-        );
+    existing_column = await db.fetchone(
+        """
+        SELECT 1
+        FROM pragma_table_info('items')
+        WHERE name = 'omit_tags'
         """
     )
+    if not existing_column:
+        await db.execute(
+            """
+            ALTER TABLE inventory.items
+            ADD COLUMN omit_tags TEXT;
+            """
+        )
 
     """
     -- Table: Managers
@@ -120,7 +136,7 @@ async def m001_initial(db: Database):
     """
     -- Table: Audit Logs
     -- Purpose: Records all significant actions taken within the inventory system,
-       including item updates, stock changes, and external service interactions.
+       including item updates and stock changes.
     """
     await db.execute(
         f"""
@@ -132,7 +148,6 @@ async def m001_initial(db: Database):
             quantity_before INTEGER NOT NULL,
             quantity_after INTEGER NOT NULL,
             source TEXT NOT NULL,
-            external_service_id TEXT,
             idempotency_key TEXT NOT NULL,
             metadata TEXT,
             created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}

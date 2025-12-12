@@ -3,16 +3,14 @@ from datetime import datetime, timezone
 from lnbits.db import Database, Filters, Page
 from lnbits.helpers import urlsafe_short_hash
 
-from .helpers import check_item_tags, create_api_key, split_tags
+from .helpers import check_item_tags, split_tags
 from .models import (
     Category,
     CreateCategory,
-    CreateExternalService,
     CreateInventory,
     CreateInventoryUpdateLog,
     CreateItem,
     CreateManager,
-    ExternalService,
     Inventory,
     InventoryLogFilters,
     InventoryUpdateLog,
@@ -291,74 +289,6 @@ def manager_can_access_item(manager: Manager, item: Item) -> bool:
 async def get_manager_items(inventory_id: str, manager: Manager) -> list[Item]:
     items = await get_inventory_items(inventory_id)
     return [item for item in items if manager_can_access_item(manager, item)]
-
-
-async def create_external_service(data: CreateExternalService) -> ExternalService:
-    service_id = urlsafe_short_hash()
-    ext_service = ExternalService(
-        id=service_id,
-        api_key=create_api_key(data.inventory_id, service_id),
-        **data.dict(),
-    )
-    await db.insert("inventory.external_services", ext_service)
-    return ext_service
-
-
-async def get_external_service(service_id: str) -> ExternalService | None:
-    return await db.fetchone(
-        """
-        SELECT * FROM inventory.external_services
-        WHERE id = :service_id
-        """,
-        {"service_id": service_id},
-        model=ExternalService,
-    )
-
-
-async def get_external_service_by_api_key(api_key: str) -> ExternalService | None:
-    return await db.fetchone(
-        """
-        SELECT * FROM inventory.external_services
-        WHERE api_key = :api_key
-        """,
-        {"api_key": api_key},
-        model=ExternalService,
-    )
-
-
-async def get_external_services() -> list[ExternalService]:
-    return await db.fetchall(
-        """
-        SELECT * FROM inventory.external_services
-        """,
-        model=ExternalService,
-    )
-
-
-async def delete_external_service(service_id: str) -> None:
-    await db.execute(
-        """
-        DELETE FROM inventory.external_services
-        WHERE id = :service_id
-        """,
-        {"service_id": service_id},
-    )
-
-
-async def delete_inventory_external_services(inventory_id: str) -> None:
-    await db.execute(
-        """
-        DELETE FROM inventory.external_services
-        WHERE inventory_id = :inventory_id
-        """,
-        {"inventory_id": inventory_id},
-    )
-
-
-async def update_external_service(data: ExternalService) -> ExternalService:
-    data.last_used_at = datetime.now(timezone.utc)
-    await db.update("inventory.external_services", data)
-    return data
 
 
 ## Log/Audit
