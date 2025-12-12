@@ -9,6 +9,7 @@ from lnbits.decorators import (
     parse_filters,
 )
 from lnbits.helpers import generate_filter_params_openapi
+from pydantic import BaseModel
 
 from .crud import (
     create_category,
@@ -24,6 +25,7 @@ from .crud import (
     get_inventories,
     get_inventory,
     get_inventory_categories,
+    get_inventory_items,
     get_inventory_items_paginated,
     get_inventory_update_logs_paginated,
     get_item,
@@ -56,6 +58,94 @@ from .models import (
 inventory_ext_api = APIRouter()
 items_filters = parse_filters(ItemFilters)
 logs_filters = parse_filters(InventoryLogFilters)
+
+
+class ImportItem(BaseModel):
+    name: str
+    price: float
+    description: str | None = None
+    images: list[str] | str | None = None
+    sku: str | None = None
+    quantity_in_stock: int | None = None
+    discount_percentage: float | None = None
+    tax_rate: float | None = None
+    reorder_threshold: int | None = None
+    unit_cost: float | None = None
+    external_id: str | None = None
+    tags: list[str] | str | None = None
+    omit_tags: list[str] | str | None = None
+    is_active: bool | None = True
+    internal_note: str | None = None
+    manager_id: str | None = None
+    is_approved: bool | None = True
+    categories: list[Category] | None = None
+
+    class Config:
+        extra = "ignore"
+
+
+class ImportItemsPayload(BaseModel):
+    items: list[ImportItem]
+
+
+def _to_csv(value: list[str] | str | None) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        cleaned = value.strip()
+        return cleaned or None
+    cleaned_values = [str(item).strip() for item in value if str(item).strip()]
+    return ",".join(cleaned_values) if cleaned_values else None
+
+
+def _from_csv(value: str | None, separator: str = ",") -> list[str]:
+    if not value:
+        return []
+    parts = [part.strip() for part in value.split(separator)]
+    return [part for part in parts if part]
+
+
+def _normalize_images(value: str | list[str] | None) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    separator = "|||" if "|||" in value else ","
+    return _from_csv(value, separator=separator)
+
+
+def _to_images_csv(value: list[str] | str | None) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, list):
+        cleaned = [str(v).strip() for v in value if str(v).strip()]
+        return "|||".join(cleaned) if cleaned else None
+    cleaned = value.strip()
+    return cleaned or None
+
+
+def _prepare_import_item(item: ImportItem, inventory_id: str) -> CreateItem:
+    return CreateItem(
+        inventory_id=inventory_id,
+        categories=item.categories or [],
+        name=item.name,
+        description=item.description,
+        images=_to_images_csv(item.images),
+        sku=item.sku,
+        quantity_in_stock=item.quantity_in_stock,
+        price=item.price,
+        discount_percentage=item.discount_percentage,
+        tax_rate=item.tax_rate,
+        reorder_threshold=item.reorder_threshold,
+        unit_cost=item.unit_cost,
+        external_id=item.external_id,
+        tags=_to_csv(item.tags),
+        omit_tags=_to_csv(item.omit_tags),
+        is_active=item.is_active if item.is_active is not None else True,
+        internal_note=item.internal_note,
+        manager_id=None,
+        is_approved=item.is_approved if item.is_approved is not None else True,
+    )
 
 
 def _manager_allowed_tags(manager: Manager) -> list[str] | None:
@@ -155,6 +245,50 @@ async def api_get_items(
     return Page(
         data=[PublicItem(**item.dict()) for item in page.data], total=page.total
     )
+
+
+@inventory_ext_api.get("/api/v1/items/{inventory_id}/export", status_code=HTTPStatus.OK)
+async def api_export_items(
+    inventory_id: str, user: User = Depends(check_user_exists)
+) -> dict:
+    inventory = await get_inventory(user.id, inventory_id)
+    if not inventory or inventory.user_id != user.id:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Inventory not found.",
+        )
+    items = await get_inventory_items(inventory_id)
+    exportable_items = []
+    for item in items:
+        data = item.dict()
+        data.pop("inventory_id", None)
+        data["tags"] = _from_csv(data.get("tags"))
+        data["omit_tags"] = _from_csv(data.get("omit_tags"))
+        data["images"] = _normalize_images(data.get("images"))
+        exportable_items.append(data)
+    return {"items": exportable_items}
+
+
+@inventory_ext_api.post(
+    "/api/v1/items/{inventory_id}/import", status_code=HTTPStatus.CREATED
+)
+async def api_import_items(
+    inventory_id: str,
+    payload: ImportItemsPayload,
+    user: User = Depends(check_user_exists),
+) -> list[Item]:
+    inventory = await get_inventory(user.id, inventory_id)
+    if not inventory or inventory.user_id != user.id:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Inventory not found.",
+        )
+    created_items: list[Item] = []
+    for raw_item in payload.items:
+        item_data = _prepare_import_item(raw_item, inventory_id)
+        created_item = await create_item(item_data)
+        created_items.append(created_item)
+    return created_items
 
 
 @inventory_ext_api.post("/api/v1/items", status_code=HTTPStatus.CREATED)

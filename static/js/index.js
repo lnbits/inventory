@@ -152,6 +152,8 @@ window.app = Vue.createApp({
         }
       },
       loadingItems: false,
+      importingItems: false,
+      exportingItems: false,
       categories: [],
       stockLogsTable: {
         columns: [
@@ -809,6 +811,85 @@ window.app = Vue.createApp({
       } catch (error) {
         console.error('Error fetching stock logs:', error)
         LNbits.utils.notifyError(error)
+      }
+    },
+    triggerImportItems() {
+      if (!this.openInventory) {
+        LNbits.utils.notifyError('No inventory selected')
+        return
+      }
+      this.$refs.importItemsInput && this.$refs.importItemsInput.click()
+    },
+    async handleImportFile(event) {
+      const file = event?.target?.files?.[0]
+      if (!file) return
+      this.importingItems = true
+      try {
+        const text = await file.text()
+        const parsed = JSON.parse(text)
+        const items = Array.isArray(parsed) ? parsed : parsed.items
+        if (!Array.isArray(items) || !items.length) {
+          throw new Error('No items found in the selected file')
+        }
+        await LNbits.api.request(
+          'POST',
+          `/inventory/api/v1/items/${this.openInventory}/import`,
+          null,
+          {items}
+        )
+        await this.getItemsPaginated()
+        this.$q.notify({
+          type: 'positive',
+          message: `Imported ${items.length} item${items.length === 1 ? '' : 's'}.`
+        })
+      } catch (error) {
+        console.error('Error importing items:', error)
+        const message =
+          error?.response?.data?.detail ||
+          error?.message ||
+          'Failed to import items.'
+        LNbits.utils.notifyError(message)
+      } finally {
+        this.importingItems = false
+        if (event?.target) {
+          event.target.value = ''
+        }
+      }
+    },
+    async exportItems() {
+      if (!this.openInventory) {
+        LNbits.utils.notifyError('No inventory selected')
+        return
+      }
+      this.exportingItems = true
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/inventory/api/v1/items/${this.openInventory}/export`
+        )
+        const items = Array.isArray(data?.items) ? data.items : []
+        const blob = new Blob([JSON.stringify(items, null, 2)], {
+          type: 'application/json'
+        })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+        link.download = `inventory-${this.openInventory}-items-${timestamp}.json`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        this.$q.notify({type: 'positive', message: 'Items exported as JSON.'})
+      } catch (error) {
+        console.error('Error exporting items:', error)
+        const message =
+          error?.response?.data?.detail ||
+          error?.message ||
+          'Failed to export items.'
+        LNbits.utils.notifyError(message)
+      } finally {
+        this.exportingItems = false
       }
     },
     async fetchCurrencies() {

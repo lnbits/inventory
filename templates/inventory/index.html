@@ -502,6 +502,40 @@
           </div>
         </q-card-section>
       </q-card>
+      <q-card class="q-pa-lg q-mt-md">
+        <q-card-section class="row items-center">
+          <div class="col">
+            <div class="text-h6">Import / Export Items</div>
+            <div class="text-subtitle2">
+              Export your items as JSON or import them into this inventory.
+            </div>
+          </div>
+          <div class="col-auto q-gutter-sm">
+            <q-btn
+              outline
+              color="primary"
+              label="Export Items (JSON)"
+              :disable="!inventory"
+              :loading="exportingItems"
+              @click="exportItems"
+            ></q-btn>
+            <q-btn
+              color="primary"
+              label="Import Items"
+              :disable="!inventory"
+              :loading="importingItems"
+              @click="triggerImportItems"
+            ></q-btn>
+            <input
+              ref="importItemsInput"
+              type="file"
+              accept="application/json"
+              style="display: none"
+              @change="handleImportFile"
+            />
+          </div>
+        </q-card-section>
+      </q-card>
     </section>
   </div>
 </div>
