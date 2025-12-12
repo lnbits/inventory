@@ -46,7 +46,7 @@ window.app.component('item-card', {
   methods: {},
   created() {},
   template: `
-  <q-card class="flex column full-height">
+  <q-card class="flex column full-height inventory-item-card">
       <q-card-section horizontal class="text-section cursor-pointer" @click="$emit('edit')">
         <div v-if="item.images && item.images.length" class="col-4 flex items-center justify-center">
           <q-img
@@ -57,13 +57,13 @@ window.app.component('item-card', {
         </div>
 
         <q-card-section class="overflow-hidden text-col">
-          <div class="text-h6 ellipsis q-pb-md">
+          <div class="item-title q-pb-sm">
             <q-icon color="red" v-if="!item.is_active" class="q-mr-sm" name="link_off">
               <q-tooltip>Inactive Item</q-tooltip>
             </q-icon>
             <span v-text="item.name"></span>
           </div>
-          <div class="q-pb-md description">
+          <div class="q-pb-sm description item-description">
             <span class="text-subtitle1 ellipsis-3-lines" v-text="item.description"></span>
           </div>
           <div v-if="item.tags && item.tags.length" class="q-pb-sm">
