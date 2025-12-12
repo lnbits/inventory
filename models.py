@@ -1,10 +1,9 @@
 from datetime import datetime, timezone
 from enum import Enum
-
-from fastapi.params import Form
-from pydantic import BaseModel, Field
+from typing import ClassVar
 
 from lnbits.db import FilterModel
+from pydantic import BaseModel, Field
 
 
 class CreateInventory(BaseModel):
@@ -91,7 +90,7 @@ class Item(PublicItem):
 
 
 class ItemFilters(FilterModel):
-    __search_fields__ = [
+    __search_fields__: ClassVar[list[str]] = [
         "name",
         "description",
         "sku",
@@ -102,7 +101,13 @@ class ItemFilters(FilterModel):
         "is_approved",
     ]
 
-    __sort_fields__ = ["name", "created_at", "price", "quantity_in_stock", "tags"]
+    __sort_fields__: ClassVar[list[str]] = [
+        "name",
+        "created_at",
+        "price",
+        "quantity_in_stock",
+        "tags",
+    ]
 
     name: str | None = None
     description: str | None = None
@@ -165,9 +170,9 @@ class InventoryUpdateLog(CreateInventoryUpdateLog):
 
 
 class InventoryLogFilters(FilterModel):
-    __search_fields__ = ["idempotency_key", "item_id"]
+    __search_fields__: ClassVar[list[str]] = ["idempotency_key", "item_id"]
 
-    __sort_fields__ = [
+    __sort_fields__: ClassVar[list[str]] = [
         "created_at",
         "item_id",
         "quantity_change",

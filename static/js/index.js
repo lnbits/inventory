@@ -248,8 +248,7 @@ window.app = Vue.createApp({
       return {
         ...manager,
         tags: parsedTags,
-        selectedTags:
-          parsedTags === null ? [...inventoryTags] : [...parsedTags]
+        selectedTags: parsedTags === null ? [...inventoryTags] : [...parsedTags]
       }
     },
     prepareManagerTags(selectedTags) {
@@ -704,8 +703,7 @@ window.app = Vue.createApp({
     },
     async updateManager(data) {
       try {
-        const tagSelection =
-          data.tags === undefined ? null : data.tags
+        const tagSelection = data.tags === undefined ? null : data.tags
         const payload = {
           inventory_id: data.inventory_id,
           name: data.name,

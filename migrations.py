@@ -81,7 +81,9 @@ async def m003_add_item_omit_tags(db: Database):
             description TEXT,
             images TEXT,
             sku TEXT,
-            quantity_in_stock INTEGER CHECK (quantity_in_stock IS NULL OR quantity_in_stock >= 0),
+            quantity_in_stock INTEGER CHECK (
+                quantity_in_stock IS NULL OR quantity_in_stock >= 0
+            ),
             price REAL NOT NULL,
             discount_percentage REAL DEFAULT 0.00,
             tax_rate REAL,
@@ -117,7 +119,8 @@ async def m003_add_item_omit_tags(db: Database):
 
     """
     -- Table: Managers
-    -- Purpose: Stores managers assigned to specific inventories for better item and stock management.
+    -- Purpose: Stores managers assigned to specific inventories for
+       better item and stock management.
     """
     await db.execute(
         f"""

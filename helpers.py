@@ -2,7 +2,6 @@ from http import HTTPStatus
 
 import jwt
 from fastapi import HTTPException
-
 from lnbits.settings import settings
 
 

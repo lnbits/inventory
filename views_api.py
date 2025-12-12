@@ -1,14 +1,12 @@
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
-from lnbits.core.models import User, WalletTypeInfo
+from lnbits.core.models import User
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     check_user_exists,
     optional_user_id,
     parse_filters,
-    require_admin_key,
-    require_invoice_key,
 )
 from lnbits.helpers import generate_filter_params_openapi
 
@@ -29,13 +27,12 @@ from .crud import (
     get_inventory_items_paginated,
     get_inventory_update_logs_paginated,
     get_item,
-    get_items_by_ids,
     get_manager,
     get_manager_items,
-    manager_can_access_item,
     get_managers,
     get_public_inventory,
     is_category_unique,
+    manager_can_access_item,
     update_inventory,
     update_item,
     update_manager,
@@ -58,6 +55,7 @@ from .models import (
 
 inventory_ext_api = APIRouter()
 items_filters = parse_filters(ItemFilters)
+logs_filters = parse_filters(InventoryLogFilters)
 
 
 def _manager_allowed_tags(manager: Manager) -> list[str] | None:
@@ -109,9 +107,7 @@ async def api_update_inventory(
     return await update_inventory(inventory)
 
 
-@inventory_ext_api.delete(
-    "/api/v1/{inventory_id}", status_code=HTTPStatus.NO_CONTENT
-)
+@inventory_ext_api.delete("/api/v1/{inventory_id}", status_code=HTTPStatus.NO_CONTENT)
 async def api_delete_inventory(
     inventory_id: str,
     user: User = Depends(check_user_exists),
@@ -121,7 +117,7 @@ async def api_delete_inventory(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Cannot delete inventory.",
-    )
+        )
     # delete all related data (items, categories, managers, logs) in cascade
     await delete_inventory_items(inventory_id)
     await delete_inventory_managers(inventory_id)
@@ -297,9 +293,7 @@ async def api_create_manager(
     return await create_manager(manager)
 
 
-@inventory_ext_api.put(
-    "/api/v1/managers/{manager_id}", status_code=HTTPStatus.OK
-)
+@inventory_ext_api.put("/api/v1/managers/{manager_id}", status_code=HTTPStatus.OK)
 async def api_update_manager(
     manager_id: str,
     data: CreateManager,
@@ -572,7 +566,7 @@ async def api_manager_delete_item(
 async def api_get_inventory_logs(
     inventory_id: str,
     user: User = Depends(check_user_exists),
-    filters: Filters = Depends(parse_filters(InventoryLogFilters)),
+    filters: Filters = Depends(logs_filters),
 ) -> Page:
     inventory = await get_inventory(user.id, inventory_id)
     if not inventory or inventory.user_id != user.id:

@@ -18,7 +18,6 @@ from .models import (
     ItemFilters,
     Manager,
     PublicInventory,
-    PublicItem,
 )
 
 db = Database("ext_inventory")

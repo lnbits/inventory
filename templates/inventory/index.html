@@ -89,7 +89,6 @@
               v-for="item in items"
               :key="item.id"
             >
-            
               <item-card
                 :item="item"
                 :currency="inventory ? inventory.currency : openInventoryCurrency"
@@ -159,7 +158,9 @@
             </template>
             <template v-slot:body-cell-omit_tags="props">
               <q-td :props="props">
-                <template v-if="props.row.omit_tags && props.row.omit_tags.length">
+                <template
+                  v-if="props.row.omit_tags && props.row.omit_tags.length"
+                >
                   <q-chip
                     v-for="tag in props.row.omit_tags"
                     :key="tag"
@@ -307,7 +308,9 @@
                         icon="edit"
                         @click="showManagerDialog(manager.id)"
                       >
-                        <q-tooltip class="bg-white text-primary">Edit</q-tooltip>
+                        <q-tooltip class="bg-white text-primary"
+                          >Edit</q-tooltip
+                        >
                       </q-btn>
                       <q-btn
                         flat
@@ -360,33 +363,33 @@
                       <q-th
                         v-for="col in props.cols"
                         :key="col.name"
-                    :props="props"
-                    v-text="col.label"
-                  ></q-th>
-                </q-tr>
-              </template>
-              <template v-slot:body-cell-tags="props">
-                <q-td :props="props">
-                  <template v-if="props.row.tags && props.row.tags.length">
-                    <q-chip
-                      v-for="tag in props.row.tags"
-                      :key="tag"
-                      dense
-                      color="primary"
-                      text-color="white"
-                      class="q-mr-xs q-mb-xs"
-                    >
-                      {{ tag }}
-                    </q-chip>
+                        :props="props"
+                        v-text="col.label"
+                      ></q-th>
+                    </q-tr>
                   </template>
-                  <span v-else>-</span>
-                </q-td>
-              </template>
-              <template v-slot:body="props">
-                <q-tr :props="props">
-                  <q-td auto-width>
-                    <q-btn
-                      unlevated
+                  <template v-slot:body-cell-tags="props">
+                    <q-td :props="props">
+                      <template v-if="props.row.tags && props.row.tags.length">
+                        <q-chip
+                          v-for="tag in props.row.tags"
+                          :key="tag"
+                          dense
+                          color="primary"
+                          text-color="white"
+                          class="q-mr-xs q-mb-xs"
+                        >
+                          {{ tag }}
+                        </q-chip>
+                      </template>
+                      <span v-else>-</span>
+                    </q-td>
+                  </template>
+                  <template v-slot:body="props">
+                    <q-tr :props="props">
+                      <q-td auto-width>
+                        <q-btn
+                          unlevated
                           size="sm"
                           color="pink"
                           dense
@@ -394,17 +397,21 @@
                           icon="delete"
                         ></q-btn>
                       </q-td>
-                    <q-td auto-width>
-                      <q-btn
-                        unlevated
-                        size="sm"
-                        color="accent"
+                      <q-td auto-width>
+                        <q-btn
+                          unlevated
+                          size="sm"
+                          color="accent"
                           dense
                           @click="showItemDialog(props.row.id)"
                           icon="edit"
                         ></q-btn>
                       </q-td>
-                      <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                      <q-td
+                        v-for="col in props.cols"
+                        :key="col.name"
+                        :props="props"
+                      >
                         <template
                           v-if="
                             col.name === 'tags' &&
@@ -478,7 +485,10 @@
               <br v-if="inventory" />
               <span v-if="inventory">
                 Currency:
-                <span class="text-weight-bold" v-text="inventory.currency"></span>
+                <span
+                  class="text-weight-bold"
+                  v-text="inventory.currency"
+                ></span>
               </span>
               <span v-else>Create your inventory to enable items.</span>
             </div>

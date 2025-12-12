@@ -209,10 +209,7 @@
         const term = (this.itemsTable.search || '').toLowerCase().trim()
         if (!term) return this.items
         const match = value =>
-          (value || '')
-            .toString()
-            .toLowerCase()
-            .includes(term)
+          (value || '').toString().toLowerCase().includes(term)
 
         return this.items.filter(item => {
           return (
@@ -449,9 +446,7 @@
             mapped.quantity_in_stock !== undefined
               ? mapped.quantity_in_stock
               : 0
-          this.items = this.items.map(it =>
-            it.id === mapped.id ? mapped : it
-          )
+          this.items = this.items.map(it => (it.id === mapped.id ? mapped : it))
         } catch (error) {
           console.error('Error updating item quantity:', error)
           LNbits.utils.notifyError('Failed to update quantity.')
