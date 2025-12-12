@@ -46,8 +46,8 @@ window.app.component('item-card', {
   methods: {},
   created() {},
   template: `
-  <q-card class="flex column full-height" clickable>
-      <q-card-section horizontal class="text-section">
+  <q-card class="flex column full-height">
+      <q-card-section horizontal class="text-section cursor-pointer" @click="$emit('edit')">
         <div v-if="item.images && item.images.length" class="col-4 flex items-center justify-center">
           <q-img
             height="100%" width="100%" fit="cover"
