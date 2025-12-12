@@ -874,7 +874,10 @@ window.app = Vue.createApp({
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+        const timestamp = new Date()
+          .toISOString()
+          .slice(0, 19)
+          .replace(/[:T]/g, '-')
         link.download = `inventory-${this.openInventory}-items-${timestamp}.json`
         document.body.appendChild(link)
         link.click()
