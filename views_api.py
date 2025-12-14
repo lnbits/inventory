@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from lnbits.core.models import User
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
@@ -29,6 +29,7 @@ from .crud import (
     get_inventory_items_paginated,
     get_inventory_update_logs_paginated,
     get_item,
+    get_items_by_ids,
     get_manager,
     get_manager_items,
     get_managers,
@@ -246,6 +247,41 @@ async def api_get_items(
         data=[PublicItem(**item.dict()) for item in page.data], total=page.total
     )
 
+@inventory_ext_api.patch(
+    "/api/v1/items/{inventory_id}/quantities", status_code=HTTPStatus.OK
+)
+async def api_update_item_quantities(
+    inventory_id: str,
+    ids: list[str] = Query(...),
+    quantities: list[int] = Query(...),
+    user: User = Depends(check_user_exists),
+) -> list[Item]:
+    inventory = await get_inventory(user.id, inventory_id)
+    if not inventory or inventory.user_id != user.id:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Inventory not found.")
+    if len(ids) != len(quantities):
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            "ids and quantities must have the same length.",
+        )
+
+    items = await get_items_by_ids(inventory_id, ids)
+    existing_by_id = {item.id: item for item in items}
+    updated_items: list[Item] = []
+
+    for item_id, qty in zip(ids, quantities):
+        current = existing_by_id.get(item_id)
+        if not current:
+            continue
+        if current.quantity_in_stock is None:
+            continue
+        new_quantity = max(0, current.quantity_in_stock - qty)
+        current.quantity_in_stock = new_quantity
+        updated_items.append(await update_item(current))
+
+    return updated_items
+
+
 
 @inventory_ext_api.get("/api/v1/items/{inventory_id}/export", status_code=HTTPStatus.OK)
 async def api_export_items(
@@ -289,7 +325,6 @@ async def api_import_items(
         created_item = await create_item(item_data)
         created_items.append(created_item)
     return created_items
-
 
 @inventory_ext_api.post("/api/v1/items", status_code=HTTPStatus.CREATED)
 async def api_create_item(
