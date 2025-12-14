@@ -9,7 +9,6 @@ from lnbits.decorators import (
     parse_filters,
 )
 from lnbits.helpers import generate_filter_params_openapi
-from pydantic import BaseModel
 
 from .crud import (
     create_category,
@@ -47,6 +46,8 @@ from .models import (
     CreateInventory,
     CreateItem,
     CreateManager,
+    ImportItem,
+    ImportItemsPayload,
     Inventory,
     InventoryLogFilters,
     Item,
@@ -54,13 +55,12 @@ from .models import (
     Manager,
     ManagerQuantityUpdate,
     PublicItem,
-    ImportItemsPayload,
-    ImportItem
 )
 
 inventory_ext_api = APIRouter()
 items_filters = parse_filters(ItemFilters)
 logs_filters = parse_filters(InventoryLogFilters)
+
 
 def _to_csv(value: list[str] | str | None) -> str | None:
     if value is None:
@@ -94,8 +94,8 @@ def _to_images_csv(value: list[str] | str | None) -> str | None:
     if isinstance(value, list):
         cleaned = [str(v).strip() for v in value if str(v).strip()]
         return "|||".join(cleaned) if cleaned else None
-    cleaned = value.strip()
-    return cleaned or None
+    cleaned_str = str(value).strip()
+    return cleaned_str or None
 
 
 def _prepare_import_item(item: ImportItem, inventory_id: str) -> CreateItem:
@@ -220,6 +220,7 @@ async def api_get_items(
         data=[PublicItem(**item.dict()) for item in page.data], total=page.total
     )
 
+
 @inventory_ext_api.patch(
     "/api/v1/items/{inventory_id}/quantities", status_code=HTTPStatus.OK
 )
@@ -242,7 +243,7 @@ async def api_update_item_quantities(
     existing_by_id = {item.id: item for item in items}
     updated_items: list[Item] = []
 
-    for item_id, qty in zip(ids, quantities):
+    for item_id, qty in zip(ids, quantities, strict=False):
         current = existing_by_id.get(item_id)
         if not current:
             continue
@@ -253,7 +254,6 @@ async def api_update_item_quantities(
         updated_items.append(await update_item(current))
 
     return updated_items
-
 
 
 @inventory_ext_api.get("/api/v1/items/{inventory_id}/export", status_code=HTTPStatus.OK)
@@ -298,6 +298,7 @@ async def api_import_items(
         created_item = await create_item(item_data)
         created_items.append(created_item)
     return created_items
+
 
 @inventory_ext_api.post("/api/v1/items", status_code=HTTPStatus.CREATED)
 async def api_create_item(

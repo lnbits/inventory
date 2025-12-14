@@ -56,7 +56,7 @@
         </q-input>
       </q-toolbar>
       <div
-        v-if="!items.length && !loadingItems"
+        v-if="inventoryLoaded && !items.length && !loadingItems"
         class="flex flex-center q-py-xl"
       >
         <q-card class="q-my-xl q-pa-lg">

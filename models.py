@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 from enum import Enum
-from typing import ClassVar
 
 from lnbits.db import FilterModel
 from pydantic import BaseModel, Field
@@ -90,7 +89,7 @@ class Item(PublicItem):
 
 
 class ItemFilters(FilterModel):
-    __search_fields__: ClassVar[list[str]] = [
+    __search_fields__: list[str] = [  # noqa: RUF012
         "name",
         "description",
         "sku",
@@ -101,7 +100,7 @@ class ItemFilters(FilterModel):
         "is_approved",
     ]
 
-    __sort_fields__: ClassVar[list[str]] = [
+    __sort_fields__: list[str] = [  # noqa: RUF012
         "name",
         "created_at",
         "price",
@@ -170,9 +169,9 @@ class InventoryUpdateLog(CreateInventoryUpdateLog):
 
 
 class InventoryLogFilters(FilterModel):
-    __search_fields__: ClassVar[list[str]] = ["idempotency_key", "item_id"]
+    __search_fields__: list[str] = ["idempotency_key", "item_id"]  # noqa: RUF012
 
-    __sort_fields__: ClassVar[list[str]] = [
+    __sort_fields__: list[str] = [  # noqa: RUF012
         "created_at",
         "item_id",
         "quantity_change",
@@ -183,6 +182,7 @@ class InventoryLogFilters(FilterModel):
     item_id: str | None = None
     created_at: datetime | None = None
     source: str | None = None
+
 
 class ImportItem(BaseModel):
     name: str

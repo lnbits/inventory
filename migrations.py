@@ -3,10 +3,8 @@ from lnbits.db import Database
 
 async def m001_initial(db: Database):
     """
-    -- Table: inventories
-    -- Purpose: Stores user-created inventories, each representing a collection of items
-       (e.g., a store or warehouse). Supports global discount and tax settings for all
-       items in the inventory.
+    Fresh install schema for the inventory extension.
+    Creates inventories, categories, items, managers, and audit_logs tables with omit_tags included.
     """
     await db.execute(
         f"""
@@ -23,35 +21,9 @@ async def m001_initial(db: Database):
             created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
             updated_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
         );
-    """
-    )
-
-
-async def m002_add_omit_tags(db: Database):
-    """
-    Add omit_tags column to inventories for existing databases.
-    """
-    existing_column = await db.fetchone(
-        """
-        SELECT 1
-        FROM pragma_table_info('inventories')
-        WHERE name = 'omit_tags'
         """
     )
-    if not existing_column:
-        await db.execute(
-            """
-            ALTER TABLE inventory.inventories
-            ADD COLUMN omit_tags TEXT;
-            """
-        )
 
-    """
-    -- Table: categories
-    -- Purpose: Stores categories for organizing items within an inventory
-       (e.g., "Clothing", "Electronics").
-       Facilitates filtering in POS, webshop, or reports.
-    """
     await db.execute(
         f"""
         CREATE TABLE IF NOT EXISTS inventory.categories (
@@ -62,15 +34,9 @@ async def m002_add_omit_tags(db: Database):
             created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
             updated_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
         );
-    """
+        """
     )
 
-
-async def m003_add_item_omit_tags(db: Database):
-    """
-    Add omit_tags column to items for existing databases.
-    """
-    # Ensure items table exists with omit_tags column for fresh installs
     await db.execute(
         f"""
         CREATE TABLE IF NOT EXISTS inventory.items (
@@ -99,29 +65,9 @@ async def m003_add_item_omit_tags(db: Database):
             created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
             updated_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
         );
-    """
-    )
-
-    existing_column = await db.fetchone(
-        """
-        SELECT 1
-        FROM pragma_table_info('items')
-        WHERE name = 'omit_tags'
         """
     )
-    if not existing_column:
-        await db.execute(
-            """
-            ALTER TABLE inventory.items
-            ADD COLUMN omit_tags TEXT;
-            """
-        )
 
-    """
-    -- Table: Managers
-    -- Purpose: Stores managers assigned to specific inventories for
-       better item and stock management.
-    """
     await db.execute(
         f"""
         CREATE TABLE IF NOT EXISTS inventory.managers (
@@ -136,11 +82,6 @@ async def m003_add_item_omit_tags(db: Database):
         """
     )
 
-    """
-    -- Table: Audit Logs
-    -- Purpose: Records all significant actions taken within the inventory system,
-       including item updates and stock changes.
-    """
     await db.execute(
         f"""
         CREATE TABLE IF NOT EXISTS inventory.audit_logs (

@@ -152,6 +152,7 @@ window.app = Vue.createApp({
         }
       },
       loadingItems: false,
+      inventoryLoaded: false,
       importingItems: false,
       exportingItems: false,
       categories: [],
@@ -362,6 +363,8 @@ window.app = Vue.createApp({
         console.log('Fetched inventory:', this.inventory)
       } catch (error) {
         console.error('Error fetching inventory:', error)
+      } finally {
+        this.inventoryLoaded = true
       }
     },
     submitInventoryData() {
