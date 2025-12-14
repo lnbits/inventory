@@ -183,3 +183,30 @@ class InventoryLogFilters(FilterModel):
     item_id: str | None = None
     created_at: datetime | None = None
     source: str | None = None
+
+class ImportItem(BaseModel):
+    name: str
+    price: float
+    description: str | None = None
+    images: list[str] | str | None = None
+    sku: str | None = None
+    quantity_in_stock: int | None = None
+    discount_percentage: float | None = None
+    tax_rate: float | None = None
+    reorder_threshold: int | None = None
+    unit_cost: float | None = None
+    external_id: str | None = None
+    tags: list[str] | str | None = None
+    omit_tags: list[str] | str | None = None
+    is_active: bool | None = True
+    internal_note: str | None = None
+    manager_id: str | None = None
+    is_approved: bool | None = True
+    categories: list[Category] | None = None
+
+    class Config:
+        extra = "ignore"
+
+
+class ImportItemsPayload(BaseModel):
+    items: list[ImportItem]

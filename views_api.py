@@ -54,40 +54,13 @@ from .models import (
     Manager,
     ManagerQuantityUpdate,
     PublicItem,
+    ImportItemsPayload,
+    ImportItem
 )
 
 inventory_ext_api = APIRouter()
 items_filters = parse_filters(ItemFilters)
 logs_filters = parse_filters(InventoryLogFilters)
-
-
-class ImportItem(BaseModel):
-    name: str
-    price: float
-    description: str | None = None
-    images: list[str] | str | None = None
-    sku: str | None = None
-    quantity_in_stock: int | None = None
-    discount_percentage: float | None = None
-    tax_rate: float | None = None
-    reorder_threshold: int | None = None
-    unit_cost: float | None = None
-    external_id: str | None = None
-    tags: list[str] | str | None = None
-    omit_tags: list[str] | str | None = None
-    is_active: bool | None = True
-    internal_note: str | None = None
-    manager_id: str | None = None
-    is_approved: bool | None = True
-    categories: list[Category] | None = None
-
-    class Config:
-        extra = "ignore"
-
-
-class ImportItemsPayload(BaseModel):
-    items: list[ImportItem]
-
 
 def _to_csv(value: list[str] | str | None) -> str | None:
     if value is None:
