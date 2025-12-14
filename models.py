@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from enum import Enum
 
 from lnbits.db import FilterModel
 from pydantic import BaseModel, Field
@@ -132,19 +131,13 @@ class InventoryUpdateMetadata(BaseModel):
     note: str | None = None
 
 
-class UpdateSource(str, Enum):
-    WEBHOOK = "webhook"
-    MANUAL = "manual"
-    SYSTEM = "system"
-
-
 class CreateInventoryUpdateLog(BaseModel):
     inventory_id: str
     item_id: str
     quantity_change: int
     quantity_before: int
     quantity_after: int
-    source: UpdateSource = UpdateSource.WEBHOOK
+    source: str = "webhook"
     idempotency_key: str
     metadata: InventoryUpdateMetadata | None = None
 

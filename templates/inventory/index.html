@@ -466,6 +466,17 @@
           no-data-label="No stock logs yet..."
           no-results-label="No results found"
         >
+          <template v-slot:body-cell-item_id="props">
+            <q-td :props="props">
+              <a
+                href="#"
+                @click.prevent="showItemDialog(props.row.item_id)"
+                class="text-primary"
+              >
+                <span v-text="props.row.item_id"></span>
+              </a>
+            </q-td>
+          </template>
         </q-table>
       </q-card>
     </section>

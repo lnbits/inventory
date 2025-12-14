@@ -12,6 +12,7 @@ from lnbits.helpers import generate_filter_params_openapi
 
 from .crud import (
     create_inventory,
+    create_inventory_update_log,
     create_item,
     create_manager,
     delete_inventory,
@@ -39,6 +40,7 @@ from .crud import (
 from .helpers import split_tags
 from .models import (
     CreateInventory,
+    CreateInventoryUpdateLog,
     CreateItem,
     CreateManager,
     ImportItem,
@@ -220,6 +222,7 @@ async def api_get_items(
 )
 async def api_update_item_quantities(
     inventory_id: str,
+    source: str | None = Query(None),
     ids: list[str] = Query(...),
     quantities: list[int] = Query(...),
     user: User = Depends(check_user_exists),
@@ -243,9 +246,26 @@ async def api_update_item_quantities(
             continue
         if current.quantity_in_stock is None:
             continue
+        qty_int = int(qty)
+        if qty_int <= 0:
+            continue
         new_quantity = max(0, current.quantity_in_stock - qty)
+        if new_quantity == current.quantity_in_stock:
+            continue
+        before = current.quantity_in_stock
         current.quantity_in_stock = new_quantity
         updated_items.append(await update_item(current))
+        await create_inventory_update_log(
+            CreateInventoryUpdateLog(
+                inventory_id=inventory_id,
+                item_id=current.id,
+                quantity_change=new_quantity - before,
+                quantity_before=before,
+                quantity_after=new_quantity,
+                source=source or "system",
+                idempotency_key=f"manual-patch:{inventory_id}:{current.id}:{before}->{new_quantity}",
+            )
+        )
 
     return updated_items
 

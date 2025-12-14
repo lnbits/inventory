@@ -175,7 +175,10 @@ window.app = Vue.createApp({
             align: 'left',
             label: 'Item ID',
             field: 'item_id',
-            sortable: true
+            sortable: true,
+            classes: 'text-primary cursor-pointer',
+            style: 'text-decoration: underline',
+            headerStyle: 'width: 220px'
           },
           {
             name: 'created_at',

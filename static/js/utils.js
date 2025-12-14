@@ -24,7 +24,6 @@ function mapItems(obj) {
   obj.images = isBase64String(obj.images)
     ? fromCsv(obj.images, '|||')
     : fromCsv(obj.images)
-  // obj.categories = fromCsv(obj.categories)
   return obj
 }
 
