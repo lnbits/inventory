@@ -118,14 +118,6 @@ window.app = Vue.createApp({
             format: val => (val ? val.toString() : '')
           },
           {
-            name: 'categories',
-            align: 'left',
-            label: 'Categories',
-            field: 'categories',
-            sortable: true,
-            format: val => (val ? val.toString() : '')
-          },
-          {
             name: 'created_at',
             align: 'left',
             label: 'Created At',
@@ -155,7 +147,6 @@ window.app = Vue.createApp({
       inventoryLoaded: false,
       importingItems: false,
       exportingItems: false,
-      categories: [],
       stockLogsTable: {
         columns: [
           {
@@ -358,7 +349,6 @@ window.app = Vue.createApp({
         this.openInventory = this.inventory.id
         this.setInventoryCurrencies(this.inventory.currency)
         await this.getItemsPaginated()
-        await this.getCategories()
         await this.getManagers()
         console.log('Fetched inventory:', this.inventory)
       } catch (error) {
@@ -436,7 +426,6 @@ window.app = Vue.createApp({
             this.inventory = null
             this.openInventory = null
             this.items = []
-            this.categories = []
             this.managers = []
             this.logs = []
             this.closeInventoryDialog()
@@ -482,22 +471,6 @@ window.app = Vue.createApp({
       } finally {
         this.loadingItems = false
       }
-    },
-    async getCategories() {
-      try {
-        const {data} = await LNbits.api.request(
-          'GET',
-          `/inventory/api/v1/categories/${this.openInventory}`
-        )
-        console.log('Fetched categories:', data)
-        this.categories = [...data]
-      } catch (error) {
-        console.error('Error fetching categories:', error)
-        LNbits.utils.notifyError(error)
-      }
-    },
-    createNewCategory(val, done) {
-      if (val.length === 0) return
     },
     showItemDialog(id) {
       if (!this.inventory) return

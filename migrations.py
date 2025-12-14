@@ -4,7 +4,7 @@ from lnbits.db import Database
 async def m001_initial(db: Database):
     """
     Fresh install schema for the inventory extension.
-    Creates inventories, categories, items, managers, and audit_logs tables with omit_tags included.
+    Creates inventories, items, managers, and audit_logs tables with omit_tags included.
     """
     await db.execute(
         f"""
@@ -26,23 +26,9 @@ async def m001_initial(db: Database):
 
     await db.execute(
         f"""
-        CREATE TABLE IF NOT EXISTS inventory.categories (
-            id TEXT PRIMARY KEY,
-            inventory_id TEXT NOT NULL,
-            name TEXT,
-            description TEXT,
-            created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
-            updated_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
-        );
-        """
-    )
-
-    await db.execute(
-        f"""
         CREATE TABLE IF NOT EXISTS inventory.items (
             id TEXT PRIMARY KEY,
             inventory_id TEXT NOT NULL,
-            categories TEXT,
             name TEXT NOT NULL,
             description TEXT,
             images TEXT,

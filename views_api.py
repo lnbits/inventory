@@ -11,7 +11,6 @@ from lnbits.decorators import (
 from lnbits.helpers import generate_filter_params_openapi
 
 from .crud import (
-    create_category,
     create_inventory,
     create_item,
     create_manager,
@@ -23,7 +22,6 @@ from .crud import (
     delete_manager,
     get_inventories,
     get_inventory,
-    get_inventory_categories,
     get_inventory_items,
     get_inventory_items_paginated,
     get_inventory_update_logs_paginated,
@@ -33,7 +31,6 @@ from .crud import (
     get_manager_items,
     get_managers,
     get_public_inventory,
-    is_category_unique,
     manager_can_access_item,
     update_inventory,
     update_item,
@@ -41,8 +38,6 @@ from .crud import (
 )
 from .helpers import split_tags
 from .models import (
-    Category,
-    CreateCategory,
     CreateInventory,
     CreateItem,
     CreateManager,
@@ -101,7 +96,6 @@ def _to_images_csv(value: list[str] | str | None) -> str | None:
 def _prepare_import_item(item: ImportItem, inventory_id: str) -> CreateItem:
     return CreateItem(
         inventory_id=inventory_id,
-        categories=item.categories or [],
         name=item.name,
         description=item.description,
         images=_to_images_csv(item.images),
@@ -182,7 +176,7 @@ async def api_delete_inventory(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Cannot delete inventory.",
         )
-    # delete all related data (items, categories, managers, logs) in cascade
+    # delete all related data (items, managers, logs) in cascade
     await delete_inventory_items(inventory_id)
     await delete_inventory_managers(inventory_id)
     await delete_inventory_update_logs(inventory_id)
@@ -362,41 +356,6 @@ async def api_delete_item(
             detail="Cannot delete item.",
         )
     await delete_item(item_id)
-
-
-## CATEGORIES
-@inventory_ext_api.get("/api/v1/categories/{inventory_id}", status_code=HTTPStatus.OK)
-async def api_get_categories(
-    inventory_id: str,
-) -> list[Category]:
-    inventory = await get_public_inventory(inventory_id)
-    if not inventory:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Inventory not found.",
-        )
-
-    return await get_inventory_categories(inventory_id)
-
-
-@inventory_ext_api.post("/api/v1/categories", status_code=HTTPStatus.CREATED)
-async def api_create_category(
-    category: CreateCategory,
-    user: User = Depends(check_user_exists),
-) -> Category:
-    inventory = await get_inventory(user.id, category.inventory_id)
-    if not inventory or inventory.user_id != user.id:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Cannot create category.",
-        )
-    if not await is_category_unique(category.name, category.inventory_id):
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Category name must be unique.",
-        )
-
-    return await create_category(category)
 
 
 ## MANAGERS

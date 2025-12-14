@@ -25,21 +25,8 @@ class Inventory(PublicInventory):
     user_id: str
 
 
-class CreateCategory(BaseModel):
-    inventory_id: str
-    name: str
-    description: str | None = None
-
-
-class Category(CreateCategory):
-    id: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-
 class CreateItem(BaseModel):
     inventory_id: str
-    categories: list[Category] = Field(default_factory=list)
     name: str
     description: str | None = None
     images: str | None = None
@@ -62,7 +49,6 @@ class CreateItem(BaseModel):
 class PublicItem(BaseModel):
     id: str
     inventory_id: str
-    categories: list[Category] = Field(default_factory=list)
     name: str
     description: str | None = None
     images: str | None = None
@@ -202,7 +188,6 @@ class ImportItem(BaseModel):
     internal_note: str | None = None
     manager_id: str | None = None
     is_approved: bool | None = True
-    categories: list[Category] | None = None
 
     class Config:
         extra = "ignore"

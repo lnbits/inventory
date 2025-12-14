@@ -5,8 +5,6 @@ from lnbits.helpers import urlsafe_short_hash
 
 from .helpers import check_item_tags, split_tags
 from .models import (
-    Category,
-    CreateCategory,
     CreateInventory,
     CreateInventoryUpdateLog,
     CreateItem,
@@ -81,39 +79,6 @@ async def delete_inventory(user_id: str, inventory_id: str) -> None:
         """,
         {"inventory_id": inventory_id, "user_id": user_id},
     )
-
-
-async def get_inventory_categories(inventory_id: str) -> list[Category]:
-    return await db.fetchall(
-        """
-        SELECT * FROM inventory.categories
-        WHERE inventory_id = :inventory_id
-        """,
-        {"inventory_id": inventory_id},
-        model=Category,
-    )
-
-
-async def create_category(data: CreateCategory) -> Category:
-    category_id = urlsafe_short_hash()
-    category = Category(
-        id=category_id,
-        **data.dict(),
-    )
-    await db.insert("inventory.categories", category)
-    return category
-
-
-async def is_category_unique(name: str, inventory_id: str) -> bool:
-    existing_category = await db.fetchone(
-        """
-        SELECT * FROM inventory.categories
-        WHERE name = :name AND inventory_id = :inventory_id
-        """,
-        {"name": name, "inventory_id": inventory_id},
-        model=Category,
-    )
-    return existing_category is None
 
 
 async def get_inventory_items_paginated(
