@@ -449,7 +449,7 @@
         <q-btn
           color="primary"
           label="Refresh Stock Logs"
-          @click="getStockLogsPaginated"
+          @click="() => getStockLogsPaginated()"
         ></q-btn>
       </q-toolbar>
       <q-card v-if="logs.length" class="q-pa-lg">
