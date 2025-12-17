@@ -59,6 +59,7 @@ items_filters = parse_filters(ItemFilters)
 logs_filters = parse_filters(InventoryLogFilters)
 
 
+# private functions either go to the bottom of the file or a separate helpers.py
 def _to_csv(value: list[str] | str | None) -> str | None:
     if value is None:
         return None
@@ -223,9 +224,9 @@ async def api_get_items(
 async def api_update_item_quantities(
     inventory_id: str,
     source: str | None = Query(None),
-    ids: list[str] = Query(...),
-    quantities: list[int] = Query(...),
-    user: User = Depends(check_user_exists),
+    ids: list[str] = Query(...), # there should be a class {id: str, quantity: int} 
+    quantities: list[int] = Query(...), # items: list[ItemQuantityUpdate] = Query(...),
+    user: User = Depends(check_user_exists), # update: check_account_id
 ) -> list[Item]:
     inventory = await get_inventory(user.id, inventory_id)
     if not inventory or inventory.user_id != user.id:
@@ -480,6 +481,7 @@ async def api_delete_manager(
     await delete_manager(manager_id)
 
 
+# why '/manager/' singular?
 @inventory_ext_api.get("/api/v1/manager/{manager_id}/items", status_code=HTTPStatus.OK)
 async def api_manager_get_items(
     manager_id: str,
@@ -517,6 +519,7 @@ async def api_manager_create_item(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Manager not found.",
         )
+    # manager.is_approved not checked here, items created by unapproved managers are allowed
     inventory = await get_public_inventory(manager.inventory_id)
     if not inventory:
         raise HTTPException(
@@ -597,7 +600,7 @@ async def api_manager_update_item(
     item.is_active = False
     return await update_item(item)
 
-
+# why '/manager/' singular?
 @inventory_ext_api.put(
     "/api/v1/manager/{manager_id}/item/{item_id}/quantity",
     status_code=HTTPStatus.OK,

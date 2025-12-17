@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from lnbits.settings import settings
 
 
+# not used
 def extract_token_payload(token: str):
     try:
         payload: dict = jwt.decode(token, settings.auth_secret_key, ["HS256"])
