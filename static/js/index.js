@@ -353,7 +353,6 @@ window.app = Vue.createApp({
         this.setInventoryCurrencies(this.inventory.currency)
         await this.getItemsPaginated()
         await this.getManagers()
-        console.log('Fetched inventory:', this.inventory)
       } catch (error) {
         console.error('Error fetching inventory:', error)
       } finally {
@@ -456,16 +455,13 @@ window.app = Vue.createApp({
         this.itemsTable.pagination.rowsNumber = 0
         return
       }
-      console.log('Getting paginated items with props:', props)
       this.loadingItems = true
       try {
         const params = LNbits.utils.prepareFilterQuery(this.itemsTable, props)
-        console.log('Constructed query params:', params)
         const {data} = await LNbits.api.request(
           'GET',
           `/inventory/api/v1/items/${this.openInventory}/paginated?${params}`
         )
-        console.log('Fetched paginated items:', data)
         this.items = data.data.map(item => mapItems(item))
         this.itemsTable.pagination.rowsNumber = data.total
       } catch (error) {
@@ -481,7 +477,6 @@ window.app = Vue.createApp({
       this.setInventoryCurrencies(this.inventory?.currency)
       if (id) {
         const item = this.items.find(it => it.id === id)
-        console.log('Editing item:', item)
         this.itemDialog.data = {...item}
         this.itemDialog.gallery = item.images.map(id => {
           return {
@@ -508,8 +503,6 @@ window.app = Vue.createApp({
       const data = this.itemDialog.data
       data.tags = toCsv(data.tags)
       data.omit_tags = toCsv(data.omit_tags)
-      console.log('Submitting inventory data:', data)
-      console.log('photos:', this.itemDialog.gallery)
       if (data.id) {
         this.updateItem(data)
       } else {
@@ -553,7 +546,6 @@ window.app = Vue.createApp({
           null,
           this.itemDialog.data
         )
-        console.log('Item added:', data)
         this.items = [...this.items, mapItems(data)]
         this.itemDialog.show = false
         this.itemDialog.data = {}
@@ -774,8 +766,6 @@ window.app = Vue.createApp({
       return
     },
     async getStockLogsPaginated(props) {
-      console.log('Getting paginated stock logs with props:', props)
-      console.log('Current stockLogsTable state:', this.stockLogsTable)
       try {
         const params = LNbits.utils.prepareFilterQuery(
           this.stockLogsTable,
