@@ -420,7 +420,7 @@ async def api_delete_manager(
     await delete_manager(manager_id)
 
 
-@inventory_ext_api.get("/api/v1/manager/{manager_id}/items", status_code=HTTPStatus.OK)
+@inventory_ext_api.get("/api/v1/managers/{manager_id}/items", status_code=HTTPStatus.OK)
 async def api_manager_get_items(
     manager_id: str,
 ) -> list[Item]:
@@ -539,7 +539,7 @@ async def api_manager_update_item(
 
 
 @inventory_ext_api.put(
-    "/api/v1/manager/{manager_id}/item/{item_id}/quantity",
+    "/api/v1/managers/{manager_id}/item/{item_id}/quantity",
     status_code=HTTPStatus.OK,
 )
 async def api_manager_update_item_quantity(

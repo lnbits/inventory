@@ -223,7 +223,7 @@
         try {
           const response = await LNbits.api.request(
             'GET',
-            `/inventory/api/v1/manager/${manager.id}/items`
+            `/inventory/api/v1/managers/${manager.id}/items`
           )
           this.itemsTable.rowsNumber = response.data.length
           const mappedItems = response.data.map(item => {
@@ -428,7 +428,7 @@
           }
           const {data} = await LNbits.api.request(
             'PUT',
-            `/inventory/api/v1/manager/${this.manager.id}/item/${item.id}/quantity`,
+            `/inventory/api/v1/managers/${this.manager.id}/item/${item.id}/quantity`,
             null,
             payload
           )
