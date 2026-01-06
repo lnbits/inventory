@@ -1,8 +1,6 @@
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
-
 from lnbits.core.models import User
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
@@ -12,6 +10,7 @@ from lnbits.decorators import (
     parse_filters,
 )
 from lnbits.helpers import generate_filter_params_openapi
+from pydantic import BaseModel
 
 from .crud import (
     create_inventory,
