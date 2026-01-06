@@ -1,9 +1,12 @@
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+
 from lnbits.core.models import User
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
+    check_account_id_exists,
     check_user_exists,
     optional_user_id,
     parse_filters,
@@ -37,13 +40,18 @@ from .crud import (
     update_item,
     update_manager,
 )
-from .helpers import split_tags
+from .helpers import (
+    from_csv,
+    manager_allows_tags,
+    normalize_images,
+    prepare_import_item,
+    split_tags,
+)
 from .models import (
     CreateInventory,
     CreateInventoryUpdateLog,
     CreateItem,
     CreateManager,
-    ImportItem,
     ImportItemsPayload,
     Inventory,
     InventoryLogFilters,
@@ -57,82 +65,6 @@ from .models import (
 inventory_ext_api = APIRouter()
 items_filters = parse_filters(ItemFilters)
 logs_filters = parse_filters(InventoryLogFilters)
-
-
-def _to_csv(value: list[str] | str | None) -> str | None:
-    if value is None:
-        return None
-    if isinstance(value, str):
-        cleaned = value.strip()
-        return cleaned or None
-    cleaned_values = [str(item).strip() for item in value if str(item).strip()]
-    return ",".join(cleaned_values) if cleaned_values else None
-
-
-def _from_csv(value: str | None, separator: str = ",") -> list[str]:
-    if not value:
-        return []
-    parts = [part.strip() for part in value.split(separator)]
-    return [part for part in parts if part]
-
-
-def _normalize_images(value: str | list[str] | None) -> list[str]:
-    if value is None:
-        return []
-    if isinstance(value, list):
-        return [str(v).strip() for v in value if str(v).strip()]
-    separator = "|||" if "|||" in value else ","
-    return _from_csv(value, separator=separator)
-
-
-def _to_images_csv(value: list[str] | str | None) -> str | None:
-    if value is None:
-        return None
-    if isinstance(value, list):
-        cleaned = [str(v).strip() for v in value if str(v).strip()]
-        return "|||".join(cleaned) if cleaned else None
-    cleaned_str = str(value).strip()
-    return cleaned_str or None
-
-
-def _prepare_import_item(item: ImportItem, inventory_id: str) -> CreateItem:
-    return CreateItem(
-        inventory_id=inventory_id,
-        name=item.name,
-        description=item.description,
-        images=_to_images_csv(item.images),
-        sku=item.sku,
-        quantity_in_stock=item.quantity_in_stock,
-        price=item.price,
-        discount_percentage=item.discount_percentage,
-        tax_rate=item.tax_rate,
-        reorder_threshold=item.reorder_threshold,
-        unit_cost=item.unit_cost,
-        external_id=item.external_id,
-        tags=_to_csv(item.tags),
-        omit_tags=_to_csv(item.omit_tags),
-        is_active=item.is_active if item.is_active is not None else True,
-        internal_note=item.internal_note,
-        manager_id=None,
-        is_approved=item.is_approved if item.is_approved is not None else True,
-    )
-
-
-def _manager_allowed_tags(manager: Manager) -> list[str] | None:
-    if manager.tags is None:
-        return None
-    return split_tags(manager.tags)
-
-
-def _manager_allows_tags(manager: Manager, item_tags: list[str]) -> bool:
-    allowed_tags = _manager_allowed_tags(manager)
-    if allowed_tags is None:
-        return True
-    if not allowed_tags:
-        return False
-    if not item_tags:
-        return False
-    return all(tag in allowed_tags for tag in item_tags)
 
 
 @inventory_ext_api.get("/api/v1", status_code=HTTPStatus.OK)
@@ -217,6 +149,14 @@ async def api_get_items(
     )
 
 
+# TODO:
+# Use this model for the bulk quantity update payload
+# on next version bump (needs update on services.py on inventory and webshop extensions)
+class ItemQuantityUpdatePayload(BaseModel):
+    ids: list[str]
+    quantities: list[int]
+
+
 @inventory_ext_api.patch(
     "/api/v1/items/{inventory_id}/quantities", status_code=HTTPStatus.OK
 )
@@ -225,7 +165,7 @@ async def api_update_item_quantities(
     source: str | None = Query(None),
     ids: list[str] = Query(...),
     quantities: list[int] = Query(...),
-    user: User = Depends(check_user_exists),
+    user: User = Depends(check_account_id_exists),
 ) -> list[Item]:
     inventory = await get_inventory(user.id, inventory_id)
     if not inventory or inventory.user_id != user.id:
@@ -285,9 +225,9 @@ async def api_export_items(
     for item in items:
         data = item.dict()
         data.pop("inventory_id", None)
-        data["tags"] = _from_csv(data.get("tags"))
-        data["omit_tags"] = _from_csv(data.get("omit_tags"))
-        data["images"] = _normalize_images(data.get("images"))
+        data["tags"] = from_csv(data.get("tags"))
+        data["omit_tags"] = from_csv(data.get("omit_tags"))
+        data["images"] = normalize_images(data.get("images"))
         exportable_items.append(data)
     return {"items": exportable_items}
 
@@ -308,7 +248,7 @@ async def api_import_items(
         )
     created_items: list[Item] = []
     for raw_item in payload.items:
-        item_data = _prepare_import_item(raw_item, inventory_id)
+        item_data = prepare_import_item(raw_item, inventory_id)
         created_item = await create_item(item_data)
         created_items.append(created_item)
     return created_items
@@ -534,7 +474,7 @@ async def api_manager_create_item(
             detail="Item does not belong to the specified inventory.",
         )
     item_tags = split_tags(item.tags)
-    if not _manager_allows_tags(manager, item_tags):
+    if not manager_allows_tags(manager, item_tags):
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
             detail="Manager cannot add items with the selected tags.",
@@ -586,7 +526,7 @@ async def api_manager_update_item(
             detail="Item is not managed by the specified manager.",
         )
     item_tags = split_tags(data.tags)
-    if not _manager_allows_tags(manager, item_tags):
+    if not manager_allows_tags(manager, item_tags):
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
             detail="Manager cannot update items with the selected tags.",
