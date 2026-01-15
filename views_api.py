@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from lnbits.core.models import User
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
-    check_account_id_exists,
     check_user_exists,
     optional_user_id,
     parse_filters,
@@ -164,7 +163,7 @@ async def api_update_item_quantities(
     source: str | None = Query(None),
     ids: list[str] = Query(...),
     quantities: list[int] = Query(...),
-    user: User = Depends(check_account_id_exists),
+    user: User = Depends(check_user_exists),
 ) -> list[Item]:
     inventory = await get_inventory(user.id, inventory_id)
     if not inventory or inventory.user_id != user.id:

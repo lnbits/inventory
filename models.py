@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 
-from lnbits.db import FilterModel
 from pydantic import BaseModel, Field
+
+from lnbits.db import FilterModel
 
 
 class CreateInventory(BaseModel):
@@ -85,7 +86,7 @@ class ItemFilters(FilterModel):
         "is_approved",
     ]
 
-    __sort_fields__: list[str] = [  # noqa: RUF012
+    __sort_fields__: list[str] | None = [  # noqa: RUF012
         "name",
         "created_at",
         "price",
@@ -150,7 +151,7 @@ class InventoryUpdateLog(CreateInventoryUpdateLog):
 class InventoryLogFilters(FilterModel):
     __search_fields__: list[str] = ["idempotency_key", "item_id"]  # noqa: RUF012
 
-    __sort_fields__: list[str] = [  # noqa: RUF012
+    __sort_fields__: list[str] | None = [  # noqa: RUF012
         "created_at",
         "item_id",
         "quantity_change",
