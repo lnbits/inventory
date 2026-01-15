@@ -1,13 +1,16 @@
-# Example Extension - <small>[LNbits](https://github.com/lnbits/lnbits) extension</small>
+# Inventory Extension - <small>[LNbits](https://github.com/lnbits/lnbits) extension</small>
 
-<small>For more about LNBits extension check [this tutorial](https://github.com/lnbits/lnbits/wiki/LNbits-Extensions)</small>
+<small>For more about LNbits extensions see the [LNbits Extensions guide](https://github.com/lnbits/lnbits/wiki/LNbits-Extensions).</small>
 
-<h2>*tagline*</h2>
-This is an example extension to help you organise and build you own.
+The Inventory extension provides a simple inventory manager with item metadata and stock quantities. It is designed to be used standalone or as a shared inventory source for other LNbits extensions that need to reference items and availability.
 
-Try to include an image
-<img src="https://i.imgur.com/9i4xcQB.png">
+## Highlights
+- Create, edit, and manage inventory items.
+- Track stock quantities with quick inline updates.
+- Tag items for easier filtering and organization.
+- Share inventory data across extensions.
 
-<h2>If your extension has API endpoints, include useful ones here</h2>
-
-<code>curl -H "Content-type: application/json" -X POST https://YOUR-LNBITS/YOUR-EXTENSION/api/v1/EXAMPLE -d '{"amount":"100","memo":"example"}' -H "X-Api-Key: YOUR_WALLET-ADMIN/INVOICE-KEY"</code>
+## Screenshots
+![Inventory manager overview](static/1.png)
+![Inventory item details](static/2.png)
+![Inventory manager table](static/3.png)
