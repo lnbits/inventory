@@ -1,74 +1,93 @@
 {% extends "public.html" %} {% block toolbar_title %} Stock Manager {% endblock
 %} {% block page %}
 <div class="row justify-center">
-  <div class="text-center content-center" style="min-height: 40vh">
-    <div class="text-h5 q-my-lg">Inventory Manager Dashboard</div>
-    <div class="q-my-lg">
-      <div class="text-subtitle1">
-        Manage your inventory items here. You can add, edit, and delete items as
-        needed.
-      </div>
-    </div>
-    <q-btn color="primary" @click="showItemDialog()" label="Add Item"></q-btn>
-  </div>
   <div class="col-12">
-    <q-card>
-      <q-card-section>
-        <q-table
-          :columns="itemsTable.columns"
-          :rows="filteredItems"
-          :loading="loadingItems"
-          :pagination.sync="itemsTable.pagination"
-          row-key="id"
-          :filter="itemsTable.search"
-          no-data-label="No items..."
-          no-results-label="No results found"
-          flat
-          bordered
-        >
-          <template v-slot:top>
-            <q-space></q-space>
+    <q-table
+      :columns="displayedColumns"
+      :rows="filteredItems"
+      :loading="loadingItems"
+      :pagination.sync="itemsTable.pagination"
+      row-key="id"
+      :filter="itemsTable.search"
+      no-data-label="No items..."
+      no-results-label="No results found"
+      flat
+      bordered
+      dense
+    >
+      <template v-slot:top>
+        <div class="row items-center q-gutter-xs q-px-xs q-pt-xs full-width">
+          <q-btn
+            round
+            dense
+            color="primary"
+            icon="add"
+            @click="showItemDialog()"
+          >
+            <q-tooltip>Add an item</q-tooltip>
+          </q-btn>
+          <q-space></q-space>
+          <q-input
+            standout
+            dense
+            debounce="300"
+            color="primary"
+            v-model="itemsTable.search"
+            placeholder="Search items"
+          >
+            <template v-slot:append>
+              <q-icon name="search" />
+            </template>
+          </q-input>
+        </div>
+      </template>
+      <template v-slot:body-cell-is_active="props">
+        <q-td :props="props" class="auto-width">
+          <q-icon
+            name="circle"
+            size="10px"
+            :color="props.row.is_active ? 'positive' : 'grey-6'"
+          />
+        </q-td>
+      </template>
+      <template v-slot:body-cell-name="props">
+        <q-td :props="props">
+          <div
+            v-if="$q.screen.lt.md"
+            class="ellipsis"
+            style="max-width: 160px"
+            v-text="props.value"
+          ></div>
+          <q-tooltip v-if="$q.screen.lt.md" v-text="props.value"></q-tooltip>
+          <div v-else v-text="props.value"></div>
+        </q-td>
+      </template>
+      <template v-slot:body-cell-quantity_in_stock="props">
+        <q-td :props="props">
+          <div class="row items-center no-wrap q-gutter-sm">
             <q-input
-              standout
               dense
-              debounce="300"
+              type="number"
+              min="0"
+              :input-attr="{ size: 5 }"
+              v-model.number="props.row._quantityEdit"
+            ></q-input>
+            <q-btn
+              round
+              dense
               color="primary"
-              v-model="itemsTable.search"
-              placeholder="Search items"
-            >
-              <template v-slot:append>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-          </template>
-          <template v-slot:body-cell-quantity_in_stock="props">
-            <q-td :props="props">
-              <div class="row items-center no-wrap q-gutter-sm">
-                <q-input
-                  dense
-                  type="number"
-                  min="0"
-                  style="width: 110px"
-                  v-model.number="props.row._quantityEdit"
-                ></q-input>
-                <q-btn
-                  round
-                  dense
-                  color="primary"
-                  icon="save"
-                  :loading="updatingQuantities[props.row.id]"
-                  :disable="
+              icon="save"
+              :loading="updatingQuantities[props.row.id]"
+              :disable="
                     props.row._quantityEdit === props.row.quantity_in_stock ||
                     updatingQuantities[props.row.id]
                   "
-                  @click="updateItemQuantity(props.row)"
-                ></q-btn>
-              </div>
-            </q-td>
-          </template>
-        </q-table>
-      </q-card-section>
-    </q-card>
+              @click="updateItemQuantity(props.row)"
+            ></q-btn>
+          </div>
+        </q-td>
+      </template>
+    </q-table>
   </div>
   {% include "inventory/_dialogs.html" %}
 </div>
@@ -93,10 +112,12 @@
           columns: [
             {
               name: 'is_active',
-              align: 'left',
+              align: 'center',
               label: '',
               field: 'is_active',
               sortable: false,
+              classes: 'auto-width',
+              headerClasses: 'auto-width',
               format: (_, row) => (row.is_active === true ? '🟢' : '⚪')
             },
             {
@@ -197,6 +218,14 @@
       console.log('Manager page created', this.g)
     },
     computed: {
+      displayedColumns() {
+        if (this.$q?.screen?.lt?.md) {
+          return this.itemsTable.columns.filter(column =>
+            ['is_active', 'name', 'quantity_in_stock'].includes(column.name)
+          )
+        }
+        return this.itemsTable.columns
+      },
       filteredItems() {
         const term = (this.itemsTable.search || '').toLowerCase().trim()
         if (!term) return this.items
