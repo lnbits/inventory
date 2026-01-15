@@ -2,13 +2,18 @@
   "name": "Inventory",
   "short_description": "Shared Inventory extension",
   "tile": "/inventory/static/inventory.png",
-  "min_lnbits_version": "1.3.0",
+  "min_lnbits_version": "1.4.0",
   "donate": "donate@legend.lnbits.com",
   "contributors": [
     {
       "name": "Tiago Vasconcelos",
       "uri": "https://github.com/talvasconcelos",
       "role": "Developer"
+    },
+    {
+      "name": "Ben Arc",
+      "uri": "https://github.com/arcbtc",
+      "role": "Dev"
     }
   ],
   "images": [
