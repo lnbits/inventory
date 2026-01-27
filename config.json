@@ -1,6 +1,6 @@
 {
   "id": "inventory",
-  "version": "0.0.1-rc",
+  "version": "0.1.0",
   "name": "Inventory",
   "repo": "https://github.com/lnbits/inventory",
   "short_description": "Shared Inventory extension",
