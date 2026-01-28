@@ -555,26 +555,38 @@ window.app = Vue.createApp({
       }
     },
     async updateItem(data) {
-      const newPhotos = this.itemDialog.gallery.filter(p => p.isNew && p.file)
-      let newAssetIds = []
+      const filesToUpload = this.itemDialog.gallery
+        .filter(
+          p =>
+            (p.isNew && p.file) ||
+            (!p.isNew && p.assetId && isBase64String(p.assetId))
+        )
+        .map(p => {
+          if (p.isNew && p.file) return p.file
+          if (!p.isNew && p.assetId && isBase64String(p.assetId))
+            return base64ToFile(p.assetId)
+          return null
+        })
+        .filter(Boolean)
 
-      if (newPhotos.length > 0) {
+      let uploadedAssetIds = []
+      if (filesToUpload.length > 0) {
         try {
-          newAssetIds = await Promise.all(
-            newPhotos.map(p => this.uploadPhoto(p.file))
+          uploadedAssetIds = await Promise.all(
+            filesToUpload.map(file => this.uploadPhoto(file))
           )
         } catch (error) {
-          LNbits.utils.notifyError('Failed to upload new photos')
+          LNbits.utils.notifyError('Failed to upload photos')
           return
         }
       }
 
-      const finalIds = [
-        ...this.itemDialog.gallery
-          .filter(p => !p.isNew && p.assetId)
-          .map(p => p.assetId),
-        ...newAssetIds
-      ]
+      // Asset IDs from gallery that are not new and not base64
+      const existingAssetIds = this.itemDialog.gallery
+        .filter(p => !p.isNew && p.assetId && !isBase64String(p.assetId))
+        .map(p => p.assetId)
+
+      const finalIds = [...existingAssetIds, ...uploadedAssetIds]
 
       data.images = toCsv(finalIds)
 
