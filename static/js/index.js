@@ -650,7 +650,7 @@ window.app = Vue.createApp({
     async createManager(data) {
       try {
         const tagSelection =
-          data.tags === undefined ? (this.inventory?.tags ?? []) : data.tags
+          data.tags === undefined ? this.inventory?.tags ?? [] : data.tags
         const payload = {
           inventory_id: data.inventory_id,
           name: data.name,

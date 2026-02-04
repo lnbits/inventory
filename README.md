@@ -45,6 +45,7 @@ a single source of truth for item data and stock levels.
 The Inventory extension can be used on its own as a lightweight inventory manager.
 
 When used alongside other LNbits extensions, it can provide:
+
 - Shared access to item definitions
 - Centralized stock tracking
 - Consistent product metadata across different workflows
