@@ -1,8 +1,7 @@
 from datetime import datetime, timezone
 
-from pydantic import BaseModel, Field
-
 from lnbits.db import FilterModel
+from pydantic import BaseModel, Field
 
 
 class CreateInventory(BaseModel):
