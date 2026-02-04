@@ -35,6 +35,7 @@ class CreateItem(BaseModel):
     discount_percentage: float | None = None
     tax_rate: float | None = None
     reorder_threshold: int | None = None
+    weight_grams: int | None = None
     unit_cost: float | None = None
     external_id: str | None = None
     tags: str | None = None
@@ -56,6 +57,7 @@ class PublicItem(BaseModel):
     price: float
     discount_percentage: float | None
     tax_rate: float | None
+    weight_grams: int | None = None
     external_id: str | None = None
     tags: str | None = None
     omit_tags: str | None = None
@@ -70,6 +72,7 @@ class Item(PublicItem):
     internal_note: str | None = None
     unit_cost: float | None = None
     reorder_threshold: int | None = None
+    weight_grams: int | None = None
     is_approved: bool = False
 
 
@@ -173,6 +176,7 @@ class ImportItem(BaseModel):
     discount_percentage: float | None = None
     tax_rate: float | None = None
     reorder_threshold: int | None = None
+    weight_grams: int | None = None
     unit_cost: float | None = None
     external_id: str | None = None
     tags: list[str] | str | None = None
