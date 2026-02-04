@@ -246,7 +246,7 @@
       </div>
       <separator-text text="Inventory"></separator-text>
       <div class="row q-col-gutter-md">
-        <div class="col-12 col-sm-4">
+        <div class="col-12 col-sm-6 col-md-3">
           <q-input
             filled
             dense
@@ -255,7 +255,7 @@
             placeholder="Stock Keeping Unit"
           ></q-input>
         </div>
-        <div class="col-12 col-sm-4">
+        <div class="col-12 col-sm-6 col-md-3">
           <q-input
             filled
             dense
@@ -266,7 +266,7 @@
             placeholder="How many items you have in stock."
           ></q-input>
         </div>
-        <div class="col-12 col-sm-4">
+        <div class="col-12 col-sm-6 col-md-3">
           <q-input
             filled
             dense
@@ -275,6 +275,17 @@
             min="0"
             label="Reorder Threshold"
             hint="The minimum stock level before reordering."
+          ></q-input>
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+          <q-input
+            filled
+            dense
+            v-model.number="itemDialog.data.weight_grams"
+            type="number"
+            min="0"
+            label="Weight (g)"
+            hint="Optional weight in grams."
           ></q-input>
         </div>
       </div>

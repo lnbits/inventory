@@ -61,6 +61,7 @@ def prepare_import_item(item: ImportItem, inventory_id: str) -> CreateItem:
         discount_percentage=item.discount_percentage,
         tax_rate=item.tax_rate,
         reorder_threshold=item.reorder_threshold,
+        weight_grams=item.weight_grams,
         unit_cost=item.unit_cost,
         external_id=item.external_id,
         tags=to_csv(item.tags),

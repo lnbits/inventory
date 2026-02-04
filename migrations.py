@@ -24,6 +24,13 @@ async def m001_initial(db: Database):
         """
     )
 
+
+async def m002_add_item_weight(db: Database):
+    """
+    Add optional weight (grams) to inventory items.
+    """
+    await db.execute("ALTER TABLE inventory.items ADD COLUMN weight_grams INTEGER;")
+
     await db.execute(
         f"""
         CREATE TABLE IF NOT EXISTS inventory.items (
