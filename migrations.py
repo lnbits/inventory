@@ -29,7 +29,6 @@ async def m002_add_item_weight(db: Database):
     """
     Add optional weight (grams) to inventory items.
     """
-    await db.execute("ALTER TABLE inventory.items ADD COLUMN weight_grams INTEGER;")
 
     await db.execute(
         f"""
@@ -47,6 +46,7 @@ async def m002_add_item_weight(db: Database):
             discount_percentage REAL DEFAULT 0.00,
             tax_rate REAL,
             reorder_threshold INTEGER,
+            weight_grams INTEGER;
             unit_cost REAL,
             external_id TEXT,
             is_active BOOLEAN DEFAULT TRUE,
