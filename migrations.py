@@ -46,7 +46,7 @@ async def m002_add_item_weight(db: Database):
             discount_percentage REAL DEFAULT 0.00,
             tax_rate REAL,
             reorder_threshold INTEGER,
-            weight_grams INTEGER;
+            weight_grams INTEGER,
             unit_cost REAL,
             external_id TEXT,
             is_active BOOLEAN DEFAULT TRUE,
