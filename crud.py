@@ -87,8 +87,6 @@ async def get_inventory_items_paginated(
     where = ["inventory_id = :inventory_id"]
     params = {"inventory_id": inventory_id}
 
-    print("Fetching items with filters:", filters)
-
     return await db.fetch_page(
         "SELECT * FROM inventory.items",
         where=where,
