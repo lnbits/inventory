@@ -21,9 +21,10 @@ function mapItems(obj) {
   }
   obj.tags = fromCsv(obj.tags)
   obj.omit_tags = fromCsv(obj.omit_tags)
-  obj.images = isBase64String(obj.images)
-    ? fromCsv(obj.images, '|||')
-    : fromCsv(obj.images)
+  obj.images =
+    isBase64String(obj.images) || obj.images?.includes('|||')
+      ? fromCsv(obj.images, '|||')
+      : fromCsv(obj.images)
   return obj
 }
 
