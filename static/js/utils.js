@@ -51,3 +51,11 @@ function isBase64String(str) {
   if (typeof str !== 'string') return false
   return str.includes('data:') && str.includes('base64')
 }
+function isURLimg(str) {
+  if (typeof str !== 'string') return false
+  try {
+    return ['http:', 'https:'].includes(new URL(str.trim()).protocol)
+  } catch {
+    return false
+  }
+}

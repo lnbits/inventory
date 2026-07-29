@@ -38,6 +38,8 @@ window.app.component('item-card', {
       return 'In Stock'
     },
     itemImgUrl() {
+      if (!this.item.images || !this.item.images.length) return null
+      if (isURLimg(this.item.images[0])) return this.item.images[0]
       return isBase64String(this.item.images[0])
         ? this.item.images[0]
         : `/api/v1/assets/${this.item.images[0]}/thumbnail`

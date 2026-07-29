@@ -112,7 +112,7 @@ window.app.component('photo-gallery-form', {
           prompt: {
             model: '',
             type: 'text',
-            isValid: val => val.trim() !== '',
+            isValid: isURLimg,
             label: 'Image URL',
             attrs: {
               placeholder: 'https://example.com/photo.jpg'
@@ -122,12 +122,12 @@ window.app.component('photo-gallery-form', {
           persistent: true
         })
         .onOk(url => {
-          const preview = url
+          const preview = url.trim()
           this.gallery.push({
             file: null,
             preview,
             assetId: null,
-            isNew: false
+            isNew: true
           })
         })
     },
