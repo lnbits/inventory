@@ -481,7 +481,10 @@ window.app = Vue.createApp({
         this.itemDialog.gallery = item.images.map(id => {
           return {
             assetId: id,
-            preview: isBase64String(id) ? id : `/api/v1/assets/${id}/thumbnail`,
+            preview:
+              isBase64String(id) || isURLimg(id)
+                ? id
+                : `/api/v1/assets/${id}/thumbnail`,
             file: null,
             isNew: false
           }
@@ -531,9 +534,9 @@ window.app = Vue.createApp({
       this.itemDialog.data.inventory_id = this.inventory.id
       try {
         const assetIds = await Promise.all(
-          this.itemDialog.gallery
-            .filter(p => p.file)
-            .map(p => this.uploadPhoto(p.file))
+          this.itemDialog.gallery.map(p =>
+            p.file ? this.uploadPhoto(p.file) : p.preview
+          )
         )
         if (assetIds.includes(null)) {
           LNbits.utils.notifyError('One or more photo uploads failed')
@@ -555,40 +558,20 @@ window.app = Vue.createApp({
       }
     },
     async updateItem(data) {
-      const filesToUpload = this.itemDialog.gallery
-        .filter(
-          p =>
-            (p.isNew && p.file) ||
-            (!p.isNew && p.assetId && isBase64String(p.assetId))
-        )
-        .map(p => {
-          if (p.isNew && p.file) return p.file
-          if (!p.isNew && p.assetId && isBase64String(p.assetId))
-            return base64ToFile(p.assetId)
-          return null
+      const assetIds = await Promise.all(
+        this.itemDialog.gallery.map(p => {
+          if (p.file) return this.uploadPhoto(p.file)
+          if (p.assetId && isBase64String(p.assetId)) {
+            return this.uploadPhoto(base64ToFile(p.assetId))
+          }
+          return p.assetId || p.preview
         })
-        .filter(Boolean)
-
-      let uploadedAssetIds = []
-      if (filesToUpload.length > 0) {
-        try {
-          uploadedAssetIds = await Promise.all(
-            filesToUpload.map(file => this.uploadPhoto(file))
-          )
-        } catch (error) {
-          LNbits.utils.notifyError('Failed to upload photos')
-          return
-        }
+      )
+      if (assetIds.includes(null)) {
+        LNbits.utils.notifyError('One or more photo uploads failed')
+        return
       }
-
-      // Asset IDs from gallery that are not new and not base64
-      const existingAssetIds = this.itemDialog.gallery
-        .filter(p => !p.isNew && p.assetId && !isBase64String(p.assetId))
-        .map(p => p.assetId)
-
-      const finalIds = [...existingAssetIds, ...uploadedAssetIds]
-
-      data.images = toCsv(finalIds)
+      data.images = toCsv(assetIds)
 
       try {
         const {data: updatedItem} = await LNbits.api.request(

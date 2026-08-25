@@ -21,9 +21,10 @@ function mapItems(obj) {
   }
   obj.tags = fromCsv(obj.tags)
   obj.omit_tags = fromCsv(obj.omit_tags)
-  obj.images = isBase64String(obj.images)
-    ? fromCsv(obj.images, '|||')
-    : fromCsv(obj.images)
+  obj.images =
+    isBase64String(obj.images) || obj.images?.includes('|||')
+      ? fromCsv(obj.images, '|||')
+      : fromCsv(obj.images)
   return obj
 }
 
@@ -50,4 +51,12 @@ function base64ToFile(base64String, filename) {
 function isBase64String(str) {
   if (typeof str !== 'string') return false
   return str.includes('data:') && str.includes('base64')
+}
+function isURLimg(str) {
+  if (typeof str !== 'string') return false
+  try {
+    return ['http:', 'https:'].includes(new URL(str.trim()).protocol)
+  } catch {
+    return false
+  }
 }

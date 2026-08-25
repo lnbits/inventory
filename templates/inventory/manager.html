@@ -358,11 +358,17 @@
       },
       async addItem() {
         this.itemDialog.data.inventory_id = this.inventory.id
-        const base64List = await Promise.all(
-          this.itemDialog.gallery.map(p => fileToBase64(p.file))
+        const newPhotos = await Promise.all(
+          this.itemDialog.gallery.map(p =>
+            p.file ? fileToBase64(p.file) : p.preview
+          )
         )
+
         try {
-          this.itemDialog.data.images = toCsv(base64List, '|||')
+          this.itemDialog.data.images = toCsv(
+            newPhotos,
+            newPhotos.some(isBase64String) ? '|||' : ','
+          )
           const {data} = await LNbits.api.request(
             'POST',
             `/inventory/api/v1/managers/${this.manager.id}/item`,
@@ -385,21 +391,16 @@
         }
       },
       async updateItem(data) {
-        const newPhotos = this.itemDialog.gallery.filter(p => p.isNew && p.file)
-        let newBase64 = []
-
-        if (newPhotos.length > 0) {
-          newBase64 = await Promise.all(
-            newPhotos.map(p => fileToBase64(p.file))
+        const finalImages = await Promise.all(
+          this.itemDialog.gallery.map(p =>
+            p.file ? fileToBase64(p.file) : p.preview
           )
-        }
+        )
 
-        const finalImages = [
-          ...this.itemDialog.gallery.filter(p => !p.isNew).map(p => p.file),
-          ...newBase64
-        ]
-
-        data.images = toCsv(finalImages, '|||')
+        data.images = toCsv(
+          finalImages,
+          finalImages.some(isBase64String) ? '|||' : ','
+        )
 
         try {
           const {data: updatedItem} = await LNbits.api.request(

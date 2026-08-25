@@ -99,6 +99,39 @@ window.app.component('photo-gallery-form', {
       }
     },
 
+    addFromUrl() {
+      if (!this.canAdd) {
+        LNbits.utils.notifyError(`Maximum ${this.max} photos allowed`)
+        return
+      }
+
+      this.$q
+        .dialog({
+          title: 'Add Photo from URL',
+          color: 'secondary',
+          prompt: {
+            model: '',
+            type: 'text',
+            isValid: isURLimg,
+            label: 'Image URL',
+            attrs: {
+              placeholder: 'https://example.com/photo.jpg'
+            }
+          },
+          cancel: true,
+          persistent: true
+        })
+        .onOk(url => {
+          const preview = url.trim()
+          this.gallery.push({
+            file: null,
+            preview,
+            assetId: null,
+            isNew: true
+          })
+        })
+    },
+
     remove(index) {
       URL.revokeObjectURL(this.gallery[index].preview)
       this.gallery.splice(index, 1)
@@ -110,6 +143,14 @@ window.app.component('photo-gallery-form', {
   template: `
     <div>
     <div class="float-right">
+    <q-btn
+    outline
+    color="secondary"
+    class="q-mb-sm q-mr-sm"
+    :disable="!canAdd"
+    label="Add URL"
+    @click="addFromUrl"
+    ></q-btn>
     <q-btn
     label="Add Photo"
     color="secondary"
