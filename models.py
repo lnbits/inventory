@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from lnbits.db import FilterModel
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CreateInventory(BaseModel):
@@ -55,8 +55,8 @@ class PublicItem(BaseModel):
     sku: str | None = None
     quantity_in_stock: int | None = None
     price: float
-    discount_percentage: float | None
-    tax_rate: float | None
+    discount_percentage: float | None = None
+    tax_rate: float | None = None
     weight_grams: int | None = None
     external_id: str | None = None
     tags: str | None = None
@@ -186,8 +186,7 @@ class ImportItem(BaseModel):
     manager_id: str | None = None
     is_approved: bool | None = True
 
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
 
 class ImportItemsPayload(BaseModel):

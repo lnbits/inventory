@@ -22,7 +22,7 @@ async def index(
     user: User = Depends(check_user_exists),
 ):
     return inventory_renderer().TemplateResponse(
-        request, "inventory/index.html", {"user": user.json()}
+        request, "inventory/index.html", {"user": user.model_dump_json()}
     )
 
 
@@ -46,8 +46,8 @@ async def manager(
         request,
         "inventory/manager.html",
         {
-            "manager": manager.json(),
-            "inventory": inventory.json(),
+            "manager": manager.model_dump_json(),
+            "inventory": inventory.model_dump_json(),
             "user": None,
         },
     )
