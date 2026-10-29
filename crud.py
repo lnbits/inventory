@@ -59,7 +59,7 @@ async def create_inventory(user_id: str, data: CreateInventory) -> Inventory:
     inventory = Inventory(
         id=inventory_id,
         user_id=user_id,
-        **data.dict(),
+        **data.model_dump(),
     )
     await db.insert("inventory.inventories", inventory)
     return inventory
@@ -128,7 +128,7 @@ async def create_item(data: CreateItem) -> Item:
     item_id = urlsafe_short_hash()
     item = Item(
         id=item_id,
-        **data.dict(),
+        **data.model_dump(),
     )
     if item.manager_id is not None and item.manager_id != "":
         item.is_active = False  # Items created by managers are inactive by default
@@ -166,7 +166,7 @@ async def create_manager(data: CreateManager) -> Manager:
     manager_id = urlsafe_short_hash()
     manager = Manager(
         id=manager_id,
-        **data.dict(),
+        **data.model_dump(),
     )
     await db.insert("inventory.managers", manager)
     return manager

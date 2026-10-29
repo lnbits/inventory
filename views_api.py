@@ -92,7 +92,7 @@ async def api_update_inventory(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Cannot update inventory.",
         )
-    for field, value in data.dict().items():
+    for field, value in data.model_dump().items():
         setattr(inventory, field, value)
     return await update_inventory(inventory)
 
@@ -140,10 +140,10 @@ async def api_get_items(
         )
     page = await get_inventory_items_paginated(inventory_id, filters)
 
-    if user_id and inventory.dict().get("user_id", None) == user_id:
+    if user_id and inventory.model_dump().get("user_id", None) == user_id:
         return Page(data=page.data, total=page.total)
     return Page(
-        data=[PublicItem(**item.dict()) for item in page.data], total=page.total
+        data=[PublicItem(**item.model_dump()) for item in page.data], total=page.total
     )
 
 
@@ -221,7 +221,7 @@ async def api_export_items(
     items = await get_inventory_items(inventory_id)
     exportable_items = []
     for item in items:
-        data = item.dict()
+        data = item.model_dump()
         data.pop("inventory_id", None)
         data["tags"] = from_csv(data.get("tags"))
         data["omit_tags"] = from_csv(data.get("omit_tags"))
@@ -289,7 +289,7 @@ async def api_update_item(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Item not found.",
         )
-    for field, value in item.dict().items():
+    for field, value in item.model_dump().items():
         setattr(_item, field, value)
     # Owner updates implicitly approve items (e.g., items submitted by managers)
     _item.is_approved = True
@@ -371,7 +371,7 @@ async def api_update_manager(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Cannot update manager.",
         )
-    for field, value in data.dict().items():
+    for field, value in data.model_dump().items():
         setattr(manager, field, value)
     return await update_manager(manager)
 
@@ -529,7 +529,7 @@ async def api_manager_update_item(
             status_code=HTTPStatus.FORBIDDEN,
             detail="Manager cannot update items with the selected tags.",
         )
-    for field, value in data.dict().items():
+    for field, value in data.model_dump().items():
         setattr(item, field, value)
     item.manager_id = manager.id
     item.is_active = False
