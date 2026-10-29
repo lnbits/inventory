@@ -1,12 +1,12 @@
 {
   "id": "inventory",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "name": "Inventory",
   "repo": "https://github.com/lnbits/inventory",
   "short_description": "Shared Inventory extension",
   "description": "",
   "tile": "/inventory/static/inventory.png",
-  "min_lnbits_version": "1.7.0",
+  "min_lnbits_version": "1.7.0-rc1",
   "contributors": [
     {
       "name": "Tiago Vasconcelos",
