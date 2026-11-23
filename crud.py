@@ -96,18 +96,19 @@ async def get_inventory_items_paginated(
     )
 
 
-async def get_items_by_ids(inventory_id: str, item_ids: list[str]) -> list[Item]:
+async def get_items_by_ids(inventory_id: str, item_ids: list[str] | str) -> list[Item]:
     if not item_ids:
         return []
     if isinstance(item_ids, str):
         item_ids = [item_ids]
-    q = ",".join([f"'{item_id}'" for item_id in item_ids])
+    id_params = {f"item_id_{i}": item_id for i, item_id in enumerate(item_ids)}
+    placeholders = ", ".join(f":{key}" for key in id_params)
     items = await db.fetchall(
         f"""
         SELECT * FROM inventory.items
-        WHERE inventory_id = :inventory_id AND id IN ({q})
+        WHERE inventory_id = :inventory_id AND id IN ({placeholders})
         """,
-        {"inventory_id": inventory_id},
+        {"inventory_id": inventory_id, **id_params},
         model=Item,
     )
     return items
