@@ -7,9 +7,10 @@ import pytest_asyncio
 from fastapi import FastAPI, HTTPException, Request
 from lnbits import db as database_module
 from lnbits.db import Database
-from lnbits.extensions.inventory import crud, inventory_ext, migrations, views_api
-from lnbits.extensions.inventory.models import Inventory, Item
 from lnbits.settings import settings
+
+from .. import crud, inventory_ext, migrations, views_api
+from ..models import Inventory, Item
 
 QUANTITIES_URL = "/inventory/api/v1/items/catalog/quantities"
 QUOTED_ID = "shopkeeper's-item"
